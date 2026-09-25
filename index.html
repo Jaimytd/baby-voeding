@@ -30,80 +30,161 @@
       Alleen op dit toestel opgeslagen. Stel Firebase in (zie README) om met twee telefoons te delen.
     </div>
 
-    <section class="laatste" aria-live="polite">
-      <div class="label">Laatste voeding</div>
-      <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
-      <div id="laatste-detail" class="detail"></div>
-      <div id="laatste-kant" class="kantpil" hidden></div>
-    </section>
+    <div id="tab-registreren" class="tab">
+      <section class="laatste" aria-live="polite">
+        <div class="label">Laatste voeding</div>
+        <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
+        <div id="laatste-detail" class="detail"></div>
+        <div id="laatste-kant" class="kantpil" hidden></div>
+      </section>
 
-    <form id="invoer" class="kaart invoer" autocomplete="off">
-      <div class="rij tijdrij">
-        <label for="tijd">Tijd</label>
-        <input id="tijd" type="time" required>
-        <button type="button" id="knop-nu" class="pil klein">Nu</button>
+      <button type="button" id="loopt" class="loopt" hidden></button>
+
+      <div class="modus segment" role="tablist" aria-label="Wat registreer je?">
+        <button type="button" role="tab" data-modus="voeding" class="aan" aria-selected="true">Voeding</button>
+        <button type="button" role="tab" data-modus="kolven" aria-selected="false">Kolven</button>
       </div>
 
-      <div class="soort">
-        <div class="soortkop"><span class="stip borst"></span>Borstvoeding</div>
-        <div class="kanten">
-          <div class="kant" data-kant="L">
-            <div class="kantnaam">Links</div>
-            <button type="button" class="timer" aria-label="Timer links starten of pauzeren">
+      <form id="invoer" class="kaart invoer" autocomplete="off" data-modus="voeding">
+        <div class="rij tijdrij">
+          <label for="tijd">Tijd</label>
+          <input id="tijd" type="time" required>
+          <button type="button" class="pil klein knop-nu">Nu</button>
+        </div>
+
+        <div class="soort">
+          <div class="soortkop"><span class="stip borst"></span>Borstvoeding</div>
+          <div class="kanten">
+            <div class="kant" data-kant="L">
+              <div class="kantnaam">Links</div>
+              <button type="button" class="timer" aria-label="Timer links starten of pauzeren">
+                <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+              </button>
+              <label class="minuten"><input type="number" inputmode="numeric" min="0" max="180" placeholder="0" aria-label="Minuten links"><span>min</span></label>
+            </div>
+            <div class="kant" data-kant="R">
+              <div class="kantnaam">Rechts</div>
+              <button type="button" class="timer" aria-label="Timer rechts starten of pauzeren">
+                <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+              </button>
+              <label class="minuten"><input type="number" inputmode="numeric" min="0" max="180" placeholder="0" aria-label="Minuten rechts"><span>min</span></label>
+            </div>
+          </div>
+          <div class="laatstekant">
+            <span>Laatst gebruikt</span>
+            <div class="segment" role="group" aria-label="Laatst gebruikte borst">
+              <button type="button" data-eind="L" aria-pressed="false">Links</button>
+              <button type="button" data-eind="R" aria-pressed="false">Rechts</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="soort" data-soort="kolf">
+          <div class="soortkop"><span class="stip kolf"></span>Moedermelk (fles)</div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+          </div>
+          <div class="chips"></div>
+        </div>
+
+        <div class="soort" data-soort="kunst">
+          <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kunst" aria-label="Kunstvoeding (fles) in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+          </div>
+          <div class="chips"></div>
+        </div>
+
+        <button type="submit" class="primair opslaan" disabled>Voeding opslaan</button>
+      </form>
+
+      <form id="kolfinvoer" class="kaart invoer" autocomplete="off" data-modus="kolven" hidden>
+        <div class="rij tijdrij">
+          <label for="kolftijd">Tijd</label>
+          <input id="kolftijd" type="time" required>
+          <button type="button" class="pil klein knop-nu">Nu</button>
+        </div>
+
+        <div class="soort">
+          <div class="soortkop"><span class="stip kolf"></span>Hoe lang gekolfd</div>
+          <div class="kolfduur">
+            <button type="button" class="timer" id="kolftimer" aria-label="Kolftimer starten of pauzeren">
               <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
             </button>
-            <label class="minuten"><input type="number" inputmode="numeric" min="0" max="120" value="" placeholder="0" aria-label="Minuten links"><span>min</span></label>
-          </div>
-          <div class="kant" data-kant="R">
-            <div class="kantnaam">Rechts</div>
-            <button type="button" class="timer" aria-label="Timer rechts starten of pauzeren">
-              <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
-            </button>
-            <label class="minuten"><input type="number" inputmode="numeric" min="0" max="120" value="" placeholder="0" aria-label="Minuten rechts"><span>min</span></label>
+            <label class="minuten"><input type="number" inputmode="numeric" min="0" max="240" placeholder="0" id="kolfduur" aria-label="Minuten gekolfd"><span>min</span></label>
           </div>
         </div>
-        <div class="laatstekant">
-          <span>Laatst gebruikt</span>
-          <div class="segment" role="group" aria-label="Laatst gebruikte borst">
-            <button type="button" data-eind="L" aria-pressed="false">Links</button>
-            <button type="button" data-eind="R" aria-pressed="false">Rechts</button>
+
+        <div class="soort" data-soort="kolfL">
+          <div class="soortkop"><span class="stip kolf"></span>Opbrengst links</div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolfL" aria-label="Opbrengst links in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
+          <div class="chips"></div>
         </div>
+
+        <div class="soort" data-soort="kolfR">
+          <div class="soortkop"><span class="stip kolf"></span>Opbrengst rechts</div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolfR" aria-label="Opbrengst rechts in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+          </div>
+          <div class="chips"></div>
+        </div>
+
+        <div class="kolftotaal">Totaal <b id="kolftotaal">0 ml</b></div>
+        <button type="submit" class="primair opslaan" disabled>Kolven opslaan</button>
+      </form>
+
+      <section class="kaart">
+        <h2>Vandaag</h2>
+        <div id="totalen-vandaag"></div>
+      </section>
+
+      <section>
+        <h2 class="lijstkop">Geschiedenis</h2>
+        <div id="geschiedenis"></div>
+      </section>
+    </div>
+
+    <div id="tab-overzicht" class="tab" hidden>
+      <section class="kaart gisteren" id="gisteren"></section>
+
+      <div class="periode segment" role="group" aria-label="Periode">
+        <button type="button" data-dagen="7">7 dagen</button>
+        <button type="button" data-dagen="14" class="aan">14 dagen</button>
+        <button type="button" data-dagen="30">30 dagen</button>
       </div>
 
-      <div class="soort" data-soort="kolf">
-        <div class="soortkop"><span class="stip kolf"></span>Moedermelk (gekolfd)</div>
-        <div class="stepper">
-          <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-          <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolf" aria-label="Moedermelk in ml"><span>ml</span></label>
-          <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
-        </div>
-        <div class="chips"></div>
-      </div>
+      <section class="kaart grafiek" id="g-borst"></section>
+      <section class="kaart grafiek" id="g-kunst"></section>
+      <section class="kaart grafiek" id="g-kolf"></section>
 
-      <div class="soort" data-soort="kunst">
-        <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
-        <div class="stepper">
-          <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-          <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kunst" aria-label="Kunstvoeding in ml"><span>ml</span></label>
-          <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
-        </div>
-        <div class="chips"></div>
-      </div>
-
-      <button type="submit" id="opslaan" class="primair" disabled>Opslaan</button>
-    </form>
-
-    <section class="kaart">
-      <h2>Vandaag</h2>
-      <div class="totalen" id="totalen-vandaag"></div>
-    </section>
-
-    <section>
-      <h2 class="lijstkop">Geschiedenis</h2>
-      <div id="geschiedenis"></div>
-    </section>
+      <section class="kaart">
+        <h2>Per dag</h2>
+        <div class="tabelrol"><table class="dagtabel" id="dagtabel"></table></div>
+        <p class="klein-grijs" id="tabeluitleg"></p>
+      </section>
+    </div>
   </main>
+
+  <nav class="tabbar" role="tablist">
+    <button type="button" data-tab="registreren" class="aan">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+      Registreren
+    </button>
+    <button type="button" data-tab="overzicht">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z"/></svg>
+      Overzicht
+    </button>
+  </nav>
 
   <div id="toast" class="toast" role="status" hidden>
     <span id="toast-tekst"></span>
@@ -113,31 +194,48 @@
   <!-- Bewerken -->
   <dialog id="dlg-bewerk" class="sheet">
     <form method="dialog" id="form-bewerk">
-      <h2>Voeding aanpassen</h2>
+      <h2 id="b-titel">Voeding aanpassen</h2>
       <label class="veld">Datum en tijd
         <input type="datetime-local" id="b-tijd" required>
       </label>
-      <div class="tweeveld">
-        <label class="veld">Borst links (min)
-          <input type="number" inputmode="numeric" min="0" max="120" id="b-links">
+      <div class="b-voeding">
+        <div class="tweeveld">
+          <label class="veld">Borst links (min)
+            <input type="number" inputmode="numeric" min="0" max="180" id="b-links">
+          </label>
+          <label class="veld">Borst rechts (min)
+            <input type="number" inputmode="numeric" min="0" max="180" id="b-rechts">
+          </label>
+        </div>
+        <label class="veld">Laatst gebruikte borst
+          <select id="b-eind">
+            <option value="">Niet aangegeven</option>
+            <option value="L">Links</option>
+            <option value="R">Rechts</option>
+          </select>
         </label>
-        <label class="veld">Borst rechts (min)
-          <input type="number" inputmode="numeric" min="0" max="120" id="b-rechts">
-        </label>
+        <div class="tweeveld">
+          <label class="veld">Moedermelk fles (ml)
+            <input type="number" inputmode="numeric" min="0" max="500" id="b-kolf">
+          </label>
+          <label class="veld">Kunstvoeding (ml)
+            <input type="number" inputmode="numeric" min="0" max="500" id="b-kunst">
+          </label>
+        </div>
       </div>
-      <label class="veld">Laatst gebruikte borst
-        <select id="b-eind">
-          <option value="">Niet aangegeven</option>
-          <option value="L">Links</option>
-          <option value="R">Rechts</option>
-        </select>
-      </label>
-      <label class="veld">Moedermelk (ml)
-        <input type="number" inputmode="numeric" min="0" max="500" id="b-kolf">
-      </label>
-      <label class="veld">Kunstvoeding (ml)
-        <input type="number" inputmode="numeric" min="0" max="500" id="b-kunst">
-      </label>
+      <div class="b-kolven">
+        <label class="veld">Duur (min)
+          <input type="number" inputmode="numeric" min="0" max="240" id="b-duur">
+        </label>
+        <div class="tweeveld">
+          <label class="veld">Opbrengst links (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfL">
+          </label>
+          <label class="veld">Opbrengst rechts (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfR">
+          </label>
+        </div>
+      </div>
       <p class="klein-grijs" id="b-door"></p>
       <div class="knoppen">
         <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>

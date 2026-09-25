@@ -1,22 +1,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Alleen wie de geheime gezinscode kent, kan de voedingen lezen en schrijven.
+    // Alleen wie de geheime gezinscode kent, kan de gegevens lezen en schrijven.
     // De lijst met gezinnen zelf is niet op te vragen.
+    function codeOk(gezin) {
+      return gezin.matches('^[a-z0-9]{16,40}$');
+    }
+
     match /gezinnen/{gezin}/voedingen/{id} {
-      allow read, delete: if gezin.matches('^[a-z0-9]{16,40}$');
-      allow create, update: if gezin.matches('^[a-z0-9]{16,40}$') && geldig(request.resource.data);
+      allow read, delete: if codeOk(gezin);
+      allow create, update: if codeOk(gezin) && geldig(request.resource.data);
+    }
+
+    // Lopende timers, gedeeld tussen de telefoons.
+    match /gezinnen/{gezin}/status/{doc} {
+      allow read, delete: if codeOk(gezin);
+      allow write: if codeOk(gezin) && doc == 'timer'
+        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'K', 'kBegin', 'door', 'bijgewerkt']);
+    }
+
+    function ml(v) {
+      return v is int && v >= 0 && v <= 1000;
+    }
+
+    function minuten(v) {
+      return v is int && v >= 0 && v <= 240;
     }
 
     function geldig(d) {
-      return d.keys().hasOnly(['tijd', 'borstL', 'borstR', 'kolf', 'kunst', 'eindKant', 'door'])
-        && d.tijd is int
-        && d.borstL is int && d.borstL >= 0 && d.borstL <= 180
-        && d.borstR is int && d.borstR >= 0 && d.borstR <= 180
-        && d.kolf is int && d.kolf >= 0 && d.kolf <= 1000
-        && d.kunst is int && d.kunst >= 0 && d.kunst <= 1000
-        && (d.eindKant == null || d.eindKant in ['L', 'R'])
-        && d.door is string && d.door.size() <= 30;
+      return d.tijd is int && d.door is string && d.door.size() <= 30
+        && (voeding(d) || kolven(d));
+    }
+
+    // Een voeding: borst (per kant), moedermelk uit de fles en kunstvoeding.
+    function voeding(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'borstL', 'borstR', 'kolf', 'kunst', 'eindKant', 'door'])
+        && d.get('type', 'voeding') == 'voeding'
+        && minuten(d.borstL) && minuten(d.borstR) && ml(d.kolf) && ml(d.kunst)
+        && (d.eindKant == null || d.eindKant in ['L', 'R']);
+    }
+
+    // Een kolfsessie: duur en opbrengst per borst.
+    function kolven(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'kolfL', 'kolfR', 'duur', 'door'])
+        && d.type == 'kolven'
+        && ml(d.kolfL) && ml(d.kolfR) && minuten(d.duur);
     }
   }
 }

@@ -5,6 +5,9 @@ import { firebaseConfig } from "./config.js";
 const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
 const DAGEN_TERUG = 60;
 
+// Firestore weigert undefined; maak er null van.
+const schoon = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v === undefined ? null : v)));
+
 const meldFout = (e) => {
   console.error(e);
   window.dispatchEvent(new CustomEvent("opslagfout", { detail: e }));
@@ -28,7 +31,11 @@ async function firestoreStore(gezin) {
   } catch {
     db = fs.getFirestore(app);
   }
+  // Alleen voor tests: lokale Firestore-emulator (localStorage "emulator" = "host:poort").
+  const emu = localStorage.getItem("emulator");
+  if (emu) fs.connectFirestoreEmulator(db, emu.split(":")[0], Number(emu.split(":")[1]));
   const col = fs.collection(db, "gezinnen", gezin, "voedingen");
+  const timerDoc = fs.doc(db, "gezinnen", gezin, "status", "timer");
 
   return {
     gedeeld: true,
@@ -58,6 +65,13 @@ async function firestoreStore(gezin) {
     },
     update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch(meldFout),
     remove: (id) => fs.deleteDoc(fs.doc(col, id)).catch(meldFout),
+    // Lopende timers delen, zodat beide telefoons dezelfde sessie zien.
+    zetTimer: (t) => fs.setDoc(timerDoc, schoon(t)).catch(meldFout),
+    volgTimer(cb) {
+      return fs.onSnapshot(timerDoc, (snap) => {
+        if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());
+      });
+    },
   };
 }
 
