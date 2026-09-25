@@ -474,3 +474,27 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 #form-bewerk .knoppen .primair { grid-column: 1 / -1; order: -1; min-height: 52px; }
 #form-bewerk .knoppen .gevaar { order: 2; }
 #form-bewerk .knoppen .secundair { order: 1; }
+
+/* vandaag: gevoed, gekolfd, over */
+#totalen-vandaag { display: grid; gap: 10px; }
+.blok { border-left: 4px solid var(--lijn); padding: 2px 0 2px 12px; display: grid; gap: 4px; }
+.blok.gevoed { border-color: var(--kunst); }
+.blok.gekolfd { border-color: var(--kolf); }
+.blok.over { border-color: var(--fles); }
+.bkop { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--zacht); display: flex; justify-content: space-between; }
+.bkop span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.bregel { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.bregel b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.bwat { font-weight: 600; }
+.bdetail { color: var(--zacht); font-size: 14px; }
+.bleeg { color: var(--zacht); font-size: 15px; }
+/* geschiedenis: één label per regel */
+.item-delen { display: grid; gap: 4px; }
+.iregel { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.ilabel { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; min-width: 5.6em; }
+.iregel.fles .ilabel { color: var(--kunst); }
+.iregel.borst .ilabel { color: var(--borst); }
+.iregel.kolven .ilabel { color: var(--kolf); }
+.iregel b { font-variant-numeric: tabular-nums; }
+.idetail { color: var(--zacht); font-size: 14px; }
+.idetail:empty { display: none; }

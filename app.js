@@ -105,6 +105,41 @@ function onderdelen(v) {
   return delen;
 }
 
+// Eén registratie als duidelijke regel(s): wat was het (Fles, Borst, Gekolfd) en hoeveel.
+function regels(v) {
+  if (isKolven(v)) {
+    const L = getal(v.kolfL);
+    const R = getal(v.kolfR);
+    const perKantDuur = "duurL" in v || "duurR" in v;
+    const kant = perKantDuur
+      ? `L ${L}${getal(v.duurL) ? ` (${getal(v.duurL)}m)` : ""} · R ${R}${getal(v.duurR) ? ` (${getal(v.duurR)}m)` : ""}`
+      : `L ${L} · R ${R}`;
+    return [{ soort: "kolven", label: "Gekolfd", hoofd: `${L + R} ml`, detail: [kant, !perKantDuur && getal(v.duur) && `${getal(v.duur)} min`].filter(Boolean).join(" · ") }];
+  }
+  const uit = [];
+  const kunst = getal(v.kunst);
+  const mm = getal(v.kolf);
+  if (kunst || mm) {
+    uit.push({
+      soort: "fles",
+      label: "Fles",
+      hoofd: `${kunst + mm} ml`,
+      detail: [kunst && `${kunst} kunstvoeding`, mm && `${mm} moedermelk`].filter(Boolean).join(" + "),
+    });
+  }
+  const L = getal(v.borstL);
+  const R = getal(v.borstR);
+  if (L || R || v.eindKant) {
+    uit.push({
+      soort: "borst",
+      label: "Borst",
+      hoofd: `${L + R} min`,
+      detail: [L && `L ${L}m`, R && `R ${R}m`, v.eindKant && `laatst ${v.eindKant}`].filter(Boolean).join(" · "),
+    });
+  }
+  return uit;
+}
+
 function totalen(lijst) {
   const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0, samen: 0, aantal: lijst.length };
   for (const v of lijst) {
@@ -998,22 +1033,27 @@ function renderLaatste() {
   if (metKant) pil.innerHTML = `Vorige keer geëindigd met: <b>${kantNaam(metKant.eindKant)}</b> <span>(${uurMin(metKant.tijd)})</span>`;
 }
 
-function totaalRijen(t) {
-  const rij = (kleur, label, waarde, detail = "") =>
-    `<div class="totrij"><span class="stip ${kleur}"></span><span class="totlabel">${label}</span><b>${waarde}</b><span class="totdetail">${detail}</span></div>`;
-  return (
-    rij("kunst", "Kunstvoeding", `${t.kunst} ml`) +
-    rij("kolf", "Gekolfd", `${t.kolf} ml`, `L ${t.kolfL} · R ${t.kolfR}`) +
-    `<div class="totrij som"><span></span><span class="totlabel">Kunstvoeding + gekolfd</span><b>${t.samen} ml</b></div>` +
-    rij("fles", "Moedermelk fles", `${t.fles} ml`) +
-    rij("borst", "Borst", `${t.borst} min`, `L ${t.L} · R ${t.R}`) +
-    `<p class="klein-grijs totvoet">${t.borstKeer} keer borst · ${t.voedingen} voedingen · ${t.kolfsessies} keer gekolfd${t.kolfDuur ? ` (${t.kolfDuur} min)` : ""}</p>`
-  );
+// Vandaag in drie vragen: wat is gevoed, wat is gekolfd, wat is er nog over.
+function dagBlok(t) {
+  const regel = (hoofd, wat, detail) => `<div class="bregel"><b>${hoofd}</b><span class="bwat">${wat}</span>${detail ? `<span class="bdetail">${detail}</span>` : ""}</div>`;
+  const flesMl = t.kunst + t.fles;
+  const gevoed = [
+    flesMl && regel(`${flesMl} ml`, "fles", [t.kunst && `${t.kunst} kunstvoeding`, t.fles && `${t.fles} moedermelk`].filter(Boolean).join(" + ")),
+    t.borst && regel(`${t.borst} min`, "borst", `L ${t.L} · R ${t.R}`),
+  ].filter(Boolean).join("") || `<div class="bleeg">Nog niets gevoed</div>`;
+  const gekolfd = t.kolf
+    ? regel(`${t.kolf} ml`, "", `L ${t.kolfL} · R ${t.kolfR} · ${t.kolfsessies} keer`)
+    : `<div class="bleeg">Nog niet gekolfd</div>`;
+  const over = voorraad().reduce((s, p) => s + p.rest, 0);
+  return `
+    <div class="blok gevoed"><div class="bkop">Gevoed${t.voedingen ? `<span>${t.voedingen} keer</span>` : ""}</div>${gevoed}</div>
+    <div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>
+    ${over || t.kolf ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}`;
 }
 
 function renderLijst() {
   const vandaag = dagStart(Date.now());
-  $("#totalen-vandaag").innerHTML = totaalRijen(totalen(voedingen.filter((v) => dagStart(v.tijd) === vandaag)));
+  $("#totalen-vandaag").innerHTML = dagBlok(totalen(voedingen.filter((v) => dagStart(v.tijd) === vandaag)));
 
   const perDag = new Map();
   for (const v of voedingen) {
@@ -1024,15 +1064,11 @@ function renderLijst() {
   const dagen = [...perDag.entries()];
   const html = dagen.slice(0, dagenZichtbaar).map(([d, lijst]) => {
     const t = totalen(lijst);
-    const samenvatting = [
-      t.kunst && `kunst ${t.kunst} ml`,
-      t.kolf && `gekolfd ${t.kolf} ml`,
-      t.borst && `borst ${t.borst} min`,
-    ].filter(Boolean).join(" · ");
+    const samenvatting = [t.kunst + t.fles && `fles ${t.kunst + t.fles} ml`, t.borst && `borst ${t.borst} min`, t.kolf && `gekolfd ${t.kolf} ml`].filter(Boolean).join(" · ");
     const rijen = lijst.map((v) => `
       <button class="item" data-id="${esc(v.id)}">
         <span class="item-tijd">${uurMin(v.tijd)}</span>
-        <span class="item-delen">${onderdelen(v).map((o) => `<span class="badge ${o.soort}">${esc(o.tekst)}</span>`).join("")}</span>
+        <span class="item-delen">${regels(v).map((g) => `<span class="iregel ${g.soort}"><span class="ilabel">${g.label}</span><b>${esc(g.hoofd)}</b><span class="idetail">${esc(g.detail)}</span></span>`).join("")}</span>
         <span class="item-door">${esc(v.door || "")}</span>
       </button>`).join("");
     return `<div class="dag" data-dag="${d}"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
