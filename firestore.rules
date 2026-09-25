@@ -20,21 +20,23 @@ service cloud.firestore {
     match /gezinnen/{gezin}/status/{doc} {
       allow read, delete: if codeOk(gezin);
       allow write: if codeOk(gezin) && doc == 'timer'
-        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'bSessie', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'kSessie', 'door', 'bijgewerkt'])
+        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'bSessie', 'K', 'KL', 'KR', 'kModus', 'kBegin', 'kDoor', 'kGepauzeerd', 'kSessie', 'door', 'bijgewerkt'])
         // Wie de borst- of kolftimer wijzigt, moet de sessie kennen die nu op de server staat.
         // Een telefoon met een verouderde stand wordt zo geweigerd en krijgt de actuele stand terug.
         && (resource == null || !gewijzigd(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd'])
             || request.resource.data.get('bSessie', null) == resource.data.get('begin', null))
-        && (resource == null || !gewijzigd(['K', 'kBegin', 'kDoor', 'kGepauzeerd'])
+        && (resource == null || !gewijzigd(['K', 'KL', 'KR', 'kModus', 'kBegin', 'kDoor', 'kGepauzeerd'])
             || request.resource.data.get('kSessie', null) == resource.data.get('kBegin', null))
         // Nooit links en rechts tegelijk laten lopen.
         && !(request.resource.data.get('L', {'start': null}).start != null && request.resource.data.get('R', {'start': null}).start != null)
         && request.resource.data.get('door', '').size() <= 30
         && timerVeld(request.resource.data, 'L') && timerVeld(request.resource.data, 'R') && timerVeld(request.resource.data, 'K')
+        && timerVeld(request.resource.data, 'KL') && timerVeld(request.resource.data, 'KR')
         // Een timer met tijd erop hoort bij een sessie met een begin. Zo kan een telefoon met een
         // verouderde stand een al opgeslagen sessie niet terughalen.
         && (request.resource.data.get('begin', null) != null || (leeg(request.resource.data, 'L') && leeg(request.resource.data, 'R')))
-        && (request.resource.data.get('kBegin', null) != null || leeg(request.resource.data, 'K'));
+        && (request.resource.data.get('kBegin', null) != null
+            || (leeg(request.resource.data, 'K') && leeg(request.resource.data, 'KL') && leeg(request.resource.data, 'KR')));
     }
 
     // Een timer is een map met acc (seconden) en start (tijdstip of null).
@@ -73,9 +75,10 @@ service cloud.firestore {
 
     // Een kolfsessie: duur en opbrengst per borst.
     function kolven(d) {
-      return d.keys().hasOnly(['type', 'tijd', 'kolfL', 'kolfR', 'duur', 'door'])
+      return d.keys().hasOnly(['type', 'tijd', 'kolfL', 'kolfR', 'duur', 'duurL', 'duurR', 'door'])
         && d.type == 'kolven'
-        && ml(d.kolfL) && ml(d.kolfR) && minuten(d.duur);
+        && ml(d.kolfL) && ml(d.kolfR) && minuten(d.duur)
+        && (!('duurL' in d) || minuten(d.duurL)) && (!('duurR' in d) || minuten(d.duurR));
     }
   }
 }

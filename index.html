@@ -116,11 +116,31 @@
 
         <div class="soort">
           <div class="soortkop"><span class="stip kolf"></span>Hoe lang gekolfd<button type="button" class="wis" id="wis-kolf" hidden>Wissen</button></div>
+          <div class="segment kolfmodus" role="group" aria-label="Hoe kolf je?">
+            <button type="button" data-kmodus="samen">Tegelijk</button>
+            <button type="button" data-kmodus="kant">Per kant</button>
+          </div>
           <div class="kolfduur">
             <button type="button" class="timer" id="kolftimer" aria-label="Kolftimer starten of pauzeren">
               <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
             </button>
             <label class="minuten"><input type="number" inputmode="numeric" min="0" max="240" placeholder="0" id="kolfduur" aria-label="Minuten gekolfd"><span>min</span></label>
+          </div>
+          <div class="kolfperkant" hidden>
+            <div class="kkant" data-k="KL">
+              <div class="kantnaam">Links</div>
+              <button type="button" class="timer" aria-label="Kolftimer links starten of pauzeren">
+                <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+              </button>
+              <label class="minuten"><input type="number" inputmode="numeric" min="0" max="240" placeholder="0" aria-label="Minuten gekolfd links"><span>min</span></label>
+            </div>
+            <div class="kkant" data-k="KR">
+              <div class="kantnaam">Rechts</div>
+              <button type="button" class="timer" aria-label="Kolftimer rechts starten of pauzeren">
+                <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+              </button>
+              <label class="minuten"><input type="number" inputmode="numeric" min="0" max="240" placeholder="0" aria-label="Minuten gekolfd rechts"><span>min</span></label>
+            </div>
           </div>
         </div>
 
@@ -241,6 +261,14 @@
         <label class="veld">Duur (min)
           <input type="number" inputmode="numeric" min="0" max="240" id="b-duur">
         </label>
+        <div class="tweeveld b-perkant">
+          <label class="veld">Duur links (min)
+            <input type="number" inputmode="numeric" min="0" max="240" id="b-duurL">
+          </label>
+          <label class="veld">Duur rechts (min)
+            <input type="number" inputmode="numeric" min="0" max="240" id="b-duurR">
+          </label>
+        </div>
         <div class="tweeveld">
           <label class="veld">Opbrengst links (ml)
             <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfL">
@@ -258,6 +286,12 @@
         <button value="opslaan" class="primair klein">Opslaan</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Keuzevraag (in plaats van OK/Annuleren) -->
+  <dialog id="dlg-kies" class="sheet kies">
+    <p id="kies-tekst"></p>
+    <div id="kies-knoppen" class="kiesknoppen"></div>
   </dialog>
 
   <!-- Instellingen -->

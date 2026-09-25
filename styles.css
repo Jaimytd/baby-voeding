@@ -415,3 +415,20 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .kolfkanten .waarde input { width: 100%; text-align: center; }
 .bezig { margin-top: 6px; font-weight: 700; color: var(--borst); font-variant-numeric: tabular-nums; }
 #i-kopieer { margin-top: 8px; }
+
+/* keuzevraag */
+.sheet.kies { display: none; }
+.sheet.kies[open] { display: grid; gap: 16px; }
+#kies-tekst { margin: 0; font-size: 17px; line-height: 1.45; white-space: pre-line; }
+.kiesknoppen { display: grid; gap: 10px; }
+.kiesknoppen button { width: 100%; min-height: 52px; font-size: 17px; }
+
+/* kolven: tegelijk of per kant */
+.kolfmodus { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
+.kolfmodus button.aan { background: var(--kolf); color: #fff; }
+.kolfperkant { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.kolfperkant[hidden] { display: none; }
+.kkant { background: var(--veld); border-radius: 14px; padding: 8px; display: grid; gap: 6px; border: 2px solid transparent; }
+.kkant.actief { border-color: var(--kolf); background: var(--kolf-bg); }
+.kkant.actief .timer { background: var(--kolf); color: #fff; }
+.b-perkant[hidden] { display: none; }
