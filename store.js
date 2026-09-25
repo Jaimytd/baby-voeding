@@ -68,7 +68,12 @@ async function firestoreStore(gezin) {
     // Lopende timers delen, zodat beide telefoons dezelfde sessie zien.
     // Alleen de meegegeven velden worden samengevoegd, zodat de andere timers blijven staan.
     zetTimer: (velden, door) =>
-      fs.setDoc(timerDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch((e) => meldFout(e)),
+      fs.setDoc(timerDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch((e) =>
+        // Geweigerd omdat de sessie intussen al is opgeslagen: de serverstand komt vanzelf terug.
+        e.code === "permission-denied"
+          ? window.dispatchEvent(new CustomEvent("timerverouderd"))
+          : meldFout(e),
+      ),
     volgTimer(cb) {
       return fs.onSnapshot(timerDoc, (snap) => {
         if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());

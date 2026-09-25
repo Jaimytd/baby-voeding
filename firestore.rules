@@ -18,12 +18,20 @@ service cloud.firestore {
       allow write: if codeOk(gezin) && doc == 'timer'
         && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'door', 'bijgewerkt'])
         && request.resource.data.get('door', '').size() <= 30
-        && timerVeld(request.resource.data, 'L') && timerVeld(request.resource.data, 'R') && timerVeld(request.resource.data, 'K');
+        && timerVeld(request.resource.data, 'L') && timerVeld(request.resource.data, 'R') && timerVeld(request.resource.data, 'K')
+        // Een timer met tijd erop hoort bij een sessie met een begin. Zo kan een telefoon met een
+        // verouderde stand een al opgeslagen sessie niet terughalen.
+        && (request.resource.data.get('begin', null) != null || (leeg(request.resource.data, 'L') && leeg(request.resource.data, 'R')))
+        && (request.resource.data.get('kBegin', null) != null || leeg(request.resource.data, 'K'));
     }
 
     // Een timer is een map met acc (seconden) en start (tijdstip of null).
     function timerVeld(d, k) {
       return !(k in d) || (d[k] is map && d[k].acc is number && (d[k].start == null || d[k].start is int));
+    }
+
+    function leeg(d, k) {
+      return !(k in d) || (d[k].acc == 0 && d[k].start == null);
     }
 
     function ml(v) {

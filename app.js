@@ -111,7 +111,7 @@ function totalen(lijst) {
     } else {
       t.L += getal(v.borstL);
       t.R += getal(v.borstR);
-      if (getal(v.borstL) || getal(v.borstR) || v.eindKant) t.borstKeer++;
+      if (getal(v.borstL) || getal(v.borstR)) t.borstKeer++;
       t.fles += getal(v.kolf);
       t.kunst += getal(v.kunst);
       t.voedingen++;
@@ -413,6 +413,13 @@ for (const kant of $$(".kant")) {
     }
     if (min && !timer.laatst) timer.laatst = k;
     if (!borstGebruikt()) timer.begin = null;
+    else {
+      // Handmatige invoer is ook een sessie: met begin en pauze, zodat de vraag bij een
+      // lange pauze en het tijdstip kloppen.
+      if (!timer.begin) timer.begin = Date.now() - min * 60000;
+      if (!borstLoopt()) timer.gepauzeerd = Date.now();
+      if (!timer.bDoor) timer.bDoor = naam || "";
+    }
     // Vergeten timer bijgesteld: het tijdstip is dan nu min de duur, niet het oude begin.
     const duur = (seconden("L") + seconden("R")) * 1000;
     if (timer.begin && timer.begin < Date.now() - duur - 5 * 60000) timer.begin = Date.now() - duur;
@@ -460,6 +467,11 @@ $("#kolfduur").addEventListener("input", (e) => {
     timer.K.acc = min * 60;
   }
   if (!seconden("K")) timer.kBegin = null;
+  else {
+    if (!timer.kBegin) timer.kBegin = Date.now() - min * 60000;
+    if (!loopt("K")) timer.kGepauzeerd = Date.now();
+    if (!timer.kDoor) timer.kDoor = naam || "";
+  }
   if (timer.kBegin && timer.kBegin < Date.now() - min * 60000 - 5 * 60000) timer.kBegin = Date.now() - min * 60000;
   bewaarTimer(KOLF);
   zetTijden();
@@ -607,6 +619,8 @@ $("#invoer").addEventListener("submit", (e) => {
     eindKant: metBorst ? timer.laatst || null : null,
     door: naam || "",
   };
+  if (metBorst && !voeding.borstL && !voeding.borstR &&
+      !confirm(`Borstvoeding zonder minuten opslaan${voeding.eindKant ? ` (alleen geëindigd met ${kantNaam(voeding.eindKant)})` : ""}?`)) return;
   if (!vergeten(metBorst ? timer.begin : null, voeding.borstL + voeding.borstR) || !dubbel(voeding)) return;
   const vorig = structuredClone(Object.fromEntries(BORST.map((k) => [k, timer[k]])));
   const vorigeTijd = $("#tijd").value;
@@ -851,6 +865,11 @@ function renderGisteren() {
   const gist = plusDagen(dagStart(Date.now()), -1);
   const t = totalen(voedingen.filter((v) => dagStart(v.tijd) === gist));
   const datum = new Date(gist).toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
+  if (!t.aantal) {
+    $("#gisteren").innerHTML = `<h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
+      <p class="leeg">Gisteren is niets geregistreerd. Deze dag telt niet mee in gemiddelden, trends en de vitamine K-telling.</p>`;
+    return;
+  }
   const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
   const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
   const vitk = (t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`) +
@@ -927,7 +946,7 @@ function renderOverzicht() {
 
   const rijen = [...reeks].reverse().filter((x) => x.binnen || (x.lopend && !perWeek));
   const som = (k) => rijen.reduce((s, x) => s + x.t[k], 0);
-  const volle = rijen.filter((x) => x.actief && (!x.lopend || perWeek));
+  const volle = rijen.filter((x) => x.actief && !x.lopend);
   const gem = (k) => (volle.length ? Math.round(volle.reduce((s, x) => s + x.t[k], 0) / volle.length) : 0);
   // Moedermelk uit de fles alleen tonen als die in deze periode gegeven is.
   const metFles = som("fles") > 0;
@@ -958,7 +977,7 @@ function renderOverzicht() {
   ]);
   $("#tabeluitleg").textContent =
     "k+k = kunstvoeding + gekolfd. " + (metFles ? "mm = moedermelk uit de fles. " : "") +
-    (perWeek ? "Per week het gemiddelde per dag, over de dagen met registraties." : "Gemiddelde over dagen met registraties, vandaag telt niet mee.");
+    (perWeek ? "Per week het gemiddelde per dag, over de dagen met registraties; de lopende week telt niet mee in Gem./dag." : "Gemiddelde over dagen met registraties, vandaag telt niet mee.");
 }
 
 // Tik op een dag in de tabel: naar die dag in de geschiedenis, om registraties te controleren.
@@ -1156,9 +1175,9 @@ function zetSync(meta) {
     el.title = "Alleen lokaal";
     return;
   }
-  const wacht = meta?.wachtend || (!navigator.onLine && meta?.uitCache);
+  const wacht = meta?.wachtend || meta?.uitCache || !navigator.onLine;
   el.className = "sync " + (wacht ? "wacht" : "ok");
-  el.title = wacht ? "Wacht op verbinding, wordt later gedeeld" : "Gesynchroniseerd";
+  el.title = wacht ? "Nog niet gesynchroniseerd: wacht op verbinding" : "Gesynchroniseerd";
 }
 
 // ---------- opstarten ----------
@@ -1222,6 +1241,7 @@ async function start() {
   });
   window.addEventListener("online", () => zetSync(laatsteMeta));
   window.addEventListener("offline", () => zetSync(laatsteMeta));
+  window.addEventListener("timerverouderd", () => toast("Deze timer was intussen al opgeslagen of gewist op de andere telefoon."));
   window.addEventListener("opslagfout", (e) => {
     const { fout, doc, id } = e.detail || {};
     if (doc) toast("Opslaan mislukt: " + (fout?.code || "onbekende fout"), "Opnieuw", () => store.add(doc, id));
