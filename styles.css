@@ -442,3 +442,19 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .tweeknop button { white-space: nowrap; padding: 0 8px; }
 .blikvak.samen { background: none; border: 1px solid var(--lijn); padding: 8px 14px; }
 .blikvak.samen b { font-size: 20px; }
+
+/* gekolfde melk als suggestie bij de fles */
+.voorraad {
+  width: 100%; border: 2px dashed var(--fles); background: var(--fles-bg); color: var(--tekst);
+  border-radius: 12px; padding: 10px 12px; text-align: left; font-size: 15px; line-height: 1.35;
+}
+.voorraad b { color: var(--fles); }
+.voorraad.gebruikt { border-style: solid; }
+/* wekker bij kolven */
+.wekker { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.wekkerlabel { font-size: 14px; color: var(--zacht); }
+.wekkerchips { display: flex; gap: 6px; flex: 1; }
+.wekkerchips .pil { flex: 1; min-height: 36px; padding: 4px 0; font-size: 14px; }
+.wekkerchips .pil.gekozen { background: var(--kolf); border-color: var(--kolf); color: #fff; }
+#wekker-status { margin: 6px 0 0; }
+#wekker-status:empty { display: none; }

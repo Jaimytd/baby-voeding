@@ -176,6 +176,107 @@ async function houdSchermAan(aan) {
   }
 }
 
+// ---------- wekker bij kolven ----------
+// Piept, trilt en toont een melding als de kolftimer de gekozen duur bereikt. Werkt zolang de
+// app open is (het scherm blijft aan tijdens een timer); na terugkomen gaat hij alsnog af.
+let wekkerMin = Number(ls.get("kolfWekker", 0)) || 0;
+let geluid = null;
+function ontgrendelGeluid() {
+  try {
+    geluid ??= new (window.AudioContext || window.webkitAudioContext)();
+    geluid.resume?.();
+  } catch {}
+}
+function piep() {
+  if (!geluid) return;
+  const t = geluid.currentTime;
+  for (const [start, toon] of [[0, 880], [0.35, 1175], [0.7, 880]]) {
+    const osc = geluid.createOscillator();
+    const vol = geluid.createGain();
+    osc.frequency.value = toon;
+    vol.gain.setValueAtTime(0.0001, t + start);
+    vol.gain.exponentialRampToValueAtTime(0.4, t + start + 0.02);
+    vol.gain.exponentialRampToValueAtTime(0.0001, t + start + 0.3);
+    osc.connect(vol).connect(geluid.destination);
+    osc.start(t + start);
+    osc.stop(t + start + 0.32);
+  }
+}
+function wekkerStand() {
+  // Tegelijk: de kolftimer. Per kant: de kant die loopt (de wekker geldt dan per kant).
+  const k = perKant() ? KOLFTIMERS.slice(1).find(loopt) || (seconden("KL") >= seconden("KR") ? "KL" : "KR") : "K";
+  return { k, sec: seconden(k), sleutel: `${timer.kBegin}-${k}` };
+}
+function controleerWekker() {
+  const status = $("#wekker-status");
+  if (!wekkerMin || !kolfGebruikt() || !timer.kBegin) return void (status.textContent = "");
+  const { k, sec, sleutel } = wekkerStand();
+  const rest = wekkerMin * 60 - sec;
+  if (ls.get("wekkerAf") === sleutel) return void (status.textContent = "Wekker is afgegaan.");
+  if (rest > 0) {
+    status.textContent = loopt(k) ? `Wekker gaat af over ${mmss(rest)}${perKant() ? ` (${kantNaam(k[1])})` : ""}.` : `Wekker na ${wekkerMin} min.`;
+    return;
+  }
+  ls.set("wekkerAf", sleutel);
+  status.textContent = "Wekker is afgegaan.";
+  piep();
+  navigator.vibrate?.([400, 200, 400, 200, 400]);
+  const herhaal = setInterval(piep, 2000);
+  const stop = setTimeout(() => clearInterval(herhaal), 30000);
+  kies(`Klaar met kolven: ${wekkerMin} minuten${perKant() ? ` ${kantNaam(k[1])}` : ""}.`, [{ tekst: "Wekker uit", waarde: "ok" }]).then(() => {
+    clearInterval(herhaal);
+    clearTimeout(stop);
+  });
+}
+for (const knop of $$(".wekkerchips .pil")) {
+  knop.addEventListener("click", () => {
+    wekkerMin = Number(knop.dataset.wekker);
+    ls.set("kolfWekker", wekkerMin);
+    if (wekkerMin) ontgrendelGeluid();
+    werkTimersBij();
+  });
+}
+
+// ---------- gekolfde melk als suggestie bij de fles ----------
+// Wat er nog klaarstaat: opbrengst van de kolfsessies (laatste 48 uur) min de moedermelk die
+// daarna uit de fles gegeven is, oudste melk eerst.
+function voorraad() {
+  const grens = Date.now() - 48 * 36e5;
+  const partijen = [];
+  for (const v of [...voedingen].filter((x) => x.tijd >= grens).sort((a, b) => a.tijd - b.tijd)) {
+    if (isKolven(v)) {
+      const ml = getal(v.kolfL) + getal(v.kolfR);
+      if (ml) partijen.push({ tijd: v.tijd, rest: ml });
+    } else {
+      let n = getal(v.kolf);
+      for (const p of partijen) {
+        const deel = Math.min(p.rest, n);
+        p.rest -= deel;
+        n -= deel;
+        if (!n) break;
+      }
+    }
+  }
+  return partijen.filter((p) => p.rest > 0);
+}
+function werkVoorraadBij() {
+  const knop = $("#voorraad");
+  const lijst = voorraad();
+  knop.hidden = !lijst.length;
+  if (!lijst.length) return;
+  const oudste = lijst[0];
+  const totaal = lijst.reduce((s, p) => s + p.rest, 0);
+  knop.dataset.ml = oudste.rest;
+  knop.classList.toggle("gebruikt", waardeVan("kolf") === Math.min(1000, oudste.rest));
+  knop.innerHTML = `Gekolfd ${dagLabel(oudste.tijd) === "Vandaag" ? "om" : dagLabel(oudste.tijd).toLowerCase()} ${uurMin(oudste.tijd)}: nog <b>${oudste.rest} ml</b>` +
+    (lijst.length > 1 ? ` (klaar in totaal ${totaal} ml)` : "") + `<br><span class="klein-grijs">Tik om als moedermelk in te vullen</span>`;
+}
+$("#voorraad").addEventListener("click", (e) => {
+  $("#kolf").value = Math.min(1000, Number(e.currentTarget.dataset.ml));
+  werkKnoppenBij();
+  werkVoorraadBij();
+});
+
 // ---------- keuzevraag ----------
 // Een eigen venster met duidelijk benoemde knoppen; de eerste is de hoofdkeuze.
 // Geeft de waarde van de gekozen knop, of null bij wegtikken.
@@ -500,6 +601,8 @@ function werkTimersBij() {
   if (kolfLoopt()) delen.push(`kolven ${mmss(seconden(lopendeKolf()))}${timer.kDoor && timer.kDoor !== naam ? ` (${timer.kDoor})` : ""}`);
   bezig.hidden = !delen.length;
   houdSchermAan(delen.length > 0);
+  for (const knop of $$(".wekkerchips .pil")) knop.classList.toggle("gekozen", Number(knop.dataset.wekker) === wekkerMin);
+  controleerWekker();
   bezig.textContent = delen.length ? "Nu bezig: " + delen.join(", ") : "";
   werkKnoppenBij();
 }
@@ -552,8 +655,14 @@ for (const knop of $$(".laatstekant .segment button")) {
     werkTimersBij();
   });
 }
-$("#kolftimer").addEventListener("click", () => wisselKolf("K"));
-for (const kant of $$(".kkant")) $(".timer", kant).addEventListener("click", () => wisselKolf(kant.dataset.k));
+$("#kolftimer").addEventListener("click", () => {
+  ontgrendelGeluid();
+  wisselKolf("K");
+});
+for (const kant of $$(".kkant")) $(".timer", kant).addEventListener("click", () => {
+  ontgrendelGeluid();
+  wisselKolf(kant.dataset.k);
+});
 
 // Na handmatig bijstellen: melding met ongedaan maken.
 let voorBijstellen = null;
@@ -693,6 +802,7 @@ function werkKnoppenBij() {
   $("#kolftotaal").textContent = kolfTot ? `· ${kolfTot} ml` : "";
   $("#invoer .opslaan").disabled = modus === "fles" ? !(waardeVan("kolf") || waardeVan("kunst")) : !(borstGebruikt() || timer.laatst);
   $("#kolfinvoer .opslaan").disabled = !(waardeVan("kolfL") || waardeVan("kolfR") || kolfGebruikt());
+  if (!$("#voorraad").hidden) $("#voorraad").classList.toggle("gebruikt", waardeVan("kolf") === Number($("#voorraad").dataset.ml));
 }
 
 // ---------- opslaan ----------
@@ -1150,6 +1260,7 @@ for (const b of $$(".periode button")) {
 }
 
 function renderAlles() {
+  werkVoorraadBij();
   renderLaatste();
   renderLijst();
   renderOverzicht();

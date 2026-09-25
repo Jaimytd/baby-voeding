@@ -82,6 +82,7 @@
         </div>
 
         <div class="deel-fles" hidden>
+          <button type="button" id="voorraad" class="voorraad" hidden></button>
         <div class="soort" data-soort="kunst">
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
@@ -142,6 +143,17 @@
               <label class="minuten"><input type="number" inputmode="numeric" min="0" max="240" placeholder="0" aria-label="Minuten gekolfd rechts"><span>min</span></label>
             </div>
           </div>
+          <div class="wekker">
+            <span class="wekkerlabel">Wekker</span>
+            <div class="wekkerchips" role="group" aria-label="Wekker bij kolven">
+              <button type="button" class="pil" data-wekker="0">Uit</button>
+              <button type="button" class="pil" data-wekker="10">10</button>
+              <button type="button" class="pil" data-wekker="15">15</button>
+              <button type="button" class="pil" data-wekker="20">20</button>
+              <button type="button" class="pil" data-wekker="30">30</button>
+            </div>
+          </div>
+          <p class="klein-grijs" id="wekker-status"></p>
         </div>
 
         <div class="soortkop kolfkop"><span class="stip kolf"></span>Opbrengst (ml)</div>
