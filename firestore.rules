@@ -16,7 +16,8 @@ service cloud.firestore {
     match /gezinnen/{gezin}/status/{doc} {
       allow read, delete: if codeOk(gezin);
       allow write: if codeOk(gezin) && doc == 'timer'
-        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'K', 'kBegin', 'door', 'bijgewerkt']);
+        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'door', 'bijgewerkt'])
+        && request.resource.data.get('door', '').size() <= 30;
     }
 
     function ml(v) {

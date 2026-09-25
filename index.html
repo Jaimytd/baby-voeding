@@ -45,7 +45,7 @@
         <button type="button" role="tab" data-modus="kolven" aria-selected="false">Kolven</button>
       </div>
 
-      <form id="invoer" class="kaart invoer" autocomplete="off" data-modus="voeding">
+      <form id="invoer" class="kaart invoer" autocomplete="off" novalidate data-modus="voeding">
         <div class="rij tijdrij">
           <div class="tijdlabel"><label for="tijd">Tijd</label><span class="daghint"></span></div>
           <input id="tijd" type="time" required>
@@ -71,8 +71,8 @@
             </div>
           </div>
           <div class="laatstekant">
-            <span>Laatst gebruikt</span>
-            <div class="segment" role="group" aria-label="Laatst gebruikte borst">
+            <span>Geëindigd met</span>
+            <div class="segment" role="group" aria-label="Geëindigd met borst">
               <button type="button" data-eind="L" aria-pressed="false">Links</button>
               <button type="button" data-eind="R" aria-pressed="false">Rechts</button>
             </div>
@@ -83,7 +83,7 @@
           <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
             <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
@@ -93,7 +93,7 @@
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kunst" aria-label="Kunstvoeding (fles) in ml"><span>ml</span></label>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kunst" aria-label="Kunstvoeding (fles) in ml"><span>ml</span></label>
             <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
@@ -102,7 +102,7 @@
         <button type="submit" class="primair opslaan" disabled>Voeding opslaan</button>
       </form>
 
-      <form id="kolfinvoer" class="kaart invoer" autocomplete="off" data-modus="kolven" hidden>
+      <form id="kolfinvoer" class="kaart invoer" autocomplete="off" novalidate data-modus="kolven" hidden>
         <div class="rij tijdrij">
           <div class="tijdlabel"><label for="kolftijd">Tijd</label><span class="daghint"></span></div>
           <input id="kolftijd" type="time" required>
@@ -123,7 +123,7 @@
           <div class="soortkop"><span class="stip kolf"></span>Opbrengst links</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolfL" aria-label="Opbrengst links in ml"><span>ml</span></label>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfL" aria-label="Opbrengst links in ml"><span>ml</span></label>
             <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
@@ -133,7 +133,7 @@
           <div class="soortkop"><span class="stip kolf"></span>Opbrengst rechts</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolfR" aria-label="Opbrengst rechts in ml"><span>ml</span></label>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfR" aria-label="Opbrengst rechts in ml"><span>ml</span></label>
             <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
@@ -167,11 +167,17 @@
       <section class="kaart grafiek" id="g-borst"></section>
       <section class="kaart grafiek" id="g-kunst"></section>
       <section class="kaart grafiek" id="g-kolf"></section>
+      <section class="kaart grafiek" id="g-samen"></section>
 
       <section class="kaart">
-        <h2 id="tabeltitel">Per dag</h2>
-        <div class="tabelrol"><table class="dagtabel" id="dagtabel"></table></div>
+        <h2 id="tabeltitel">Melk per dag (ml)</h2>
+        <div class="tabelrol"><table class="dagtabel" id="melktabel"></table></div>
         <p class="klein-grijs" id="tabeluitleg"></p>
+      </section>
+
+      <section class="kaart">
+        <h2 id="borsttitel">Borstvoeding per dag (min)</h2>
+        <div class="tabelrol"><table class="dagtabel" id="borsttabel"></table></div>
       </section>
     </div>
   </main>
@@ -208,7 +214,7 @@
             <input type="number" inputmode="numeric" min="0" max="180" id="b-rechts">
           </label>
         </div>
-        <label class="veld">Laatst gebruikte borst
+        <label class="veld">Geëindigd met borst
           <select id="b-eind">
             <option value="">Niet aangegeven</option>
             <option value="L">Links</option>
@@ -217,10 +223,10 @@
         </label>
         <div class="tweeveld">
           <label class="veld">Moedermelk fles (ml)
-            <input type="number" inputmode="numeric" min="0" max="500" id="b-kolf">
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolf">
           </label>
           <label class="veld">Kunstvoeding (ml)
-            <input type="number" inputmode="numeric" min="0" max="500" id="b-kunst">
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kunst">
           </label>
         </div>
       </div>

@@ -357,3 +357,13 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
   .tijdrij input { font-size: 17px; padding: 8px 6px; }
   .tijdrij .pil.klein { padding: 8px 12px; }
 }
+
+.totrij.som b { color: var(--tekst); }
+.totrij.som .totlabel { font-weight: 600; }
+.samenregel { margin: 10px 2px 0; font-size: 15px; color: var(--zacht); }
+.samenregel b { color: var(--tekst); font-size: 18px; }
+.dagtabel thead th.gk.samen { border-color: var(--tekst); }
+.dagtabel td.samen { background: var(--veld); }
+.dagtabel tbody th, .dagtabel tfoot th, .dagtabel thead tr:last-child th:first-child {
+  position: sticky; left: 0; background: var(--kaart); z-index: 1; padding-right: 6px;
+}
