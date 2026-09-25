@@ -458,3 +458,19 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .wekkerchips .pil.gekozen { background: var(--kolf); border-color: var(--kolf); color: #fff; }
 #wekker-status { margin: 6px 0 0; }
 #wekker-status:empty { display: none; }
+
+.klokoptie { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--zacht); margin-top: 8px; }
+.klokoptie input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--kolf); }
+#b-titel:focus { outline: none; }
+/* bewerkvenster: niets buiten beeld */
+.sheet form > * { min-width: 0; }
+.b-voeding, .b-kolven { display: grid; gap: 14px; }
+.b-voeding[hidden], .b-kolven[hidden] { display: none; }
+.tweeveld { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.veld input, .veld select { min-width: 0; max-width: 100%; }
+.knoppen { flex-wrap: wrap; }
+#form-bewerk .knoppen { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#form-bewerk .knoppen .vul { display: none; }
+#form-bewerk .knoppen .primair { grid-column: 1 / -1; order: -1; min-height: 52px; }
+#form-bewerk .knoppen .gevaar { order: 2; }
+#form-bewerk .knoppen .secundair { order: 1; }

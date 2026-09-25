@@ -153,6 +153,7 @@
               <button type="button" class="pil" data-wekker="30">30</button>
             </div>
           </div>
+          <label class="klokoptie" id="klok-optie" hidden><input type="checkbox" id="klok-aan"> Ook een timer zetten in de Klok-app van de telefoon (gaat ook af als deze app dicht is)</label>
           <p class="klein-grijs" id="wekker-status"></p>
         </div>
 
@@ -240,11 +241,16 @@
   <!-- Bewerken -->
   <dialog id="dlg-bewerk" class="sheet">
     <form method="dialog" id="form-bewerk">
-      <h2 id="b-titel">Voeding aanpassen</h2>
-      <label class="veld">Datum en tijd
-        <input type="datetime-local" id="b-tijd" required>
-      </label>
+      <h2 id="b-titel" tabindex="-1" autofocus>Voeding aanpassen</h2>
       <div class="b-voeding">
+        <div class="tweeveld">
+          <label class="veld">Moedermelk fles (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolf">
+          </label>
+          <label class="veld">Kunstvoeding (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kunst">
+          </label>
+        </div>
         <div class="tweeveld">
           <label class="veld">Borst links (min)
             <input type="number" inputmode="numeric" min="0" max="180" id="b-links">
@@ -260,16 +266,16 @@
             <option value="R">Rechts</option>
           </select>
         </label>
-        <div class="tweeveld">
-          <label class="veld">Moedermelk fles (ml)
-            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolf">
-          </label>
-          <label class="veld">Kunstvoeding (ml)
-            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kunst">
-          </label>
-        </div>
       </div>
       <div class="b-kolven">
+        <div class="tweeveld">
+          <label class="veld">Opbrengst links (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfL">
+          </label>
+          <label class="veld">Opbrengst rechts (ml)
+            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfR">
+          </label>
+        </div>
         <label class="veld">Duur (min)
           <input type="number" inputmode="numeric" min="0" max="240" id="b-duur">
         </label>
@@ -281,15 +287,10 @@
             <input type="number" inputmode="numeric" min="0" max="240" id="b-duurR">
           </label>
         </div>
-        <div class="tweeveld">
-          <label class="veld">Opbrengst links (ml)
-            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfL">
-          </label>
-          <label class="veld">Opbrengst rechts (ml)
-            <input type="number" inputmode="numeric" min="0" max="1000" id="b-kolfR">
-          </label>
-        </div>
       </div>
+      <label class="veld">Datum en tijd
+        <input type="datetime-local" id="b-tijd" required>
+      </label>
       <p class="klein-grijs" id="b-door"></p>
       <div class="knoppen">
         <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>
