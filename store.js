@@ -3,7 +3,7 @@
 import { firebaseConfig } from "./config.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
-const DAGEN_TERUG = 60;
+const DAGEN_TERUG = 120;
 
 // Firestore weigert undefined; maak er null van.
 const schoon = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v === undefined ? null : v)));
@@ -66,7 +66,9 @@ async function firestoreStore(gezin) {
     update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch(meldFout),
     remove: (id) => fs.deleteDoc(fs.doc(col, id)).catch(meldFout),
     // Lopende timers delen, zodat beide telefoons dezelfde sessie zien.
-    zetTimer: (t) => fs.setDoc(timerDoc, schoon(t)).catch(meldFout),
+    // Alleen de meegegeven velden worden samengevoegd, zodat de andere timers blijven staan.
+    zetTimer: (velden, door) =>
+      fs.setDoc(timerDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch(meldFout),
     volgTimer(cb) {
       return fs.onSnapshot(timerDoc, (snap) => {
         if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());

@@ -47,13 +47,13 @@
 
       <form id="invoer" class="kaart invoer" autocomplete="off" data-modus="voeding">
         <div class="rij tijdrij">
-          <label for="tijd">Tijd</label>
+          <div class="tijdlabel"><label for="tijd">Tijd</label><span class="daghint"></span></div>
           <input id="tijd" type="time" required>
           <button type="button" class="pil klein knop-nu">Nu</button>
         </div>
 
         <div class="soort">
-          <div class="soortkop"><span class="stip borst"></span>Borstvoeding</div>
+          <div class="soortkop"><span class="stip borst"></span>Borstvoeding<button type="button" class="wis" id="wis-borst" hidden>Wissen</button></div>
           <div class="kanten">
             <div class="kant" data-kant="L">
               <div class="kantnaam">Links</div>
@@ -80,7 +80,7 @@
         </div>
 
         <div class="soort" data-soort="kolf">
-          <div class="soortkop"><span class="stip kolf"></span>Moedermelk (fles)</div>
+          <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
@@ -104,13 +104,13 @@
 
       <form id="kolfinvoer" class="kaart invoer" autocomplete="off" data-modus="kolven" hidden>
         <div class="rij tijdrij">
-          <label for="kolftijd">Tijd</label>
+          <div class="tijdlabel"><label for="kolftijd">Tijd</label><span class="daghint"></span></div>
           <input id="kolftijd" type="time" required>
           <button type="button" class="pil klein knop-nu">Nu</button>
         </div>
 
         <div class="soort">
-          <div class="soortkop"><span class="stip kolf"></span>Hoe lang gekolfd</div>
+          <div class="soortkop"><span class="stip kolf"></span>Hoe lang gekolfd<button type="button" class="wis" id="wis-kolf" hidden>Wissen</button></div>
           <div class="kolfduur">
             <button type="button" class="timer" id="kolftimer" aria-label="Kolftimer starten of pauzeren">
               <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
@@ -161,6 +161,7 @@
         <button type="button" data-dagen="7">7 dagen</button>
         <button type="button" data-dagen="14" class="aan">14 dagen</button>
         <button type="button" data-dagen="30">30 dagen</button>
+        <button type="button" data-dagen="w">12 weken</button>
       </div>
 
       <section class="kaart grafiek" id="g-borst"></section>
@@ -168,7 +169,7 @@
       <section class="kaart grafiek" id="g-kolf"></section>
 
       <section class="kaart">
-        <h2>Per dag</h2>
+        <h2 id="tabeltitel">Per dag</h2>
         <div class="tabelrol"><table class="dagtabel" id="dagtabel"></table></div>
         <p class="klein-grijs" id="tabeluitleg"></p>
       </section>

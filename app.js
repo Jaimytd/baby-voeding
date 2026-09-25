@@ -101,7 +101,7 @@ function onderdelen(v) {
 }
 
 function totalen(lijst) {
-  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0 };
+  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0 };
   for (const v of lijst) {
     if (isKolven(v)) {
       t.kolfL += getal(v.kolfL);
@@ -111,6 +111,7 @@ function totalen(lijst) {
     } else {
       t.L += getal(v.borstL);
       t.R += getal(v.borstR);
+      if (getal(v.borstL) || getal(v.borstR) || v.eindKant) t.borstKeer++;
       t.fles += getal(v.kolf);
       t.kunst += getal(v.kunst);
       t.voedingen++;
@@ -172,6 +173,7 @@ for (const b of $$(".modus button")) b.addEventListener("click", () => toonModus
 // ---------- timers (gedeeld tussen de telefoons) ----------
 // Alles is gebaseerd op tijdstempels, dus de timer loopt door als het scherm vergrendelt
 // of de app sluit, en het blijft dezelfde sessie.
+const MAX_MIN = { L: 180, R: 180, K: 240 };
 const leegTimer = () => ({
   L: { acc: 0, start: null },
   R: { acc: 0, start: null },
@@ -179,23 +181,22 @@ const leegTimer = () => ({
   laatst: null,
   K: { acc: 0, start: null },
   kBegin: null,
-  door: "",
-  bijgewerkt: 0,
 });
-let timer = { ...leegTimer(), ...(ls.get("timers", null) || ls.get("borsttimer", null) || {}) };
+const TIMERVELDEN = Object.keys(leegTimer());
+const alleenTimervelden = (t) => Object.fromEntries(TIMERVELDEN.filter((k) => k in (t || {})).map((k) => [k, t[k]]));
+let timer = { ...leegTimer(), ...alleenTimervelden(ls.get("timers", null) || ls.get("borsttimer", null)) };
 const seconden = (k) => timer[k].acc + (timer[k].start ? Math.max(0, Date.now() - timer[k].start) / 1000 : 0);
-const minutenVan = (k) => {
-  const s = seconden(k);
-  return s > 0 ? Math.min(240, Math.max(1, Math.round(s / 60))) : 0;
-};
+const minutenVan = (k) => Math.min(MAX_MIN[k], Math.round(seconden(k) / 60));
 const loopt = (k) => Boolean(timer[k].start);
 const borstLoopt = () => loopt("L") || loopt("R");
+const borstGebruikt = () => borstLoopt() || seconden("L") > 0 || seconden("R") > 0;
+const BORST = ["L", "R", "begin", "laatst"];
+const KOLF = ["K", "kBegin"];
 
-function bewaarTimer() {
-  timer.door = naam || "";
-  timer.bijgewerkt = Date.now();
+// Alleen de gewijzigde velden delen, zodat je nooit de timer van de ander overschrijft.
+function bewaarTimer(velden) {
   ls.set("timers", timer);
-  store?.zetTimer?.(timer);
+  store?.zetTimer?.(Object.fromEntries(velden.map((k) => [k, timer[k]])), naam || "");
 }
 
 function pauzeer(k) {
@@ -213,7 +214,7 @@ function wisselBorst(k) {
     timer.laatst = k;
     if (!timer.begin) timer.begin = Date.now();
   }
-  bewaarTimer();
+  bewaarTimer(BORST);
   zetTijden();
   werkTimersBij();
 }
@@ -225,10 +226,28 @@ function wisselKolf() {
     timer.K.start = Date.now();
     if (!timer.kBegin) timer.kBegin = Date.now();
   }
-  bewaarTimer();
+  bewaarTimer(KOLF);
   zetTijden();
   werkTimersBij();
 }
+
+// Per ongeluk gestart of vergeten: de timer leegmaken, met ongedaan maken.
+function wisTimer(velden) {
+  const vorig = structuredClone(Object.fromEntries(velden.map((k) => [k, timer[k]])));
+  const leeg = leegTimer();
+  for (const k of velden) timer[k] = leeg[k];
+  bewaarTimer(velden);
+  zetTijden();
+  werkTimersBij();
+  toast("Timer gewist", "Ongedaan maken", () => {
+    Object.assign(timer, vorig);
+    bewaarTimer(velden);
+    zetTijden();
+    werkTimersBij();
+  });
+}
+$("#wis-borst").addEventListener("click", () => wisTimer(BORST));
+$("#wis-kolf").addEventListener("click", () => wisTimer(KOLF));
 
 function timerKnop(knop, k) {
   const actief = loopt(k);
@@ -251,8 +270,10 @@ function werkTimersBij() {
     knop.classList.toggle("aan", aan);
     knop.setAttribute("aria-pressed", aan);
   }
+  $("#wis-borst").hidden = !(borstGebruikt() || timer.laatst);
   timerKnop($("#kolftimer"), "K");
   $(".kolfduur").classList.toggle("actief", loopt("K"));
+  $("#wis-kolf").hidden = !(seconden("K") > 0);
   const duurInp = $("#kolfduur");
   if (document.activeElement !== duurInp) duurInp.value = seconden("K") > 0 ? minutenVan("K") : "";
 
@@ -277,9 +298,11 @@ for (const kant of $$(".kant")) {
   inp.addEventListener("input", () => {
     // Handmatig typen overschrijft de timer van deze kant.
     timer[k].start = null;
-    timer[k].acc = getal(inp.value) * 60;
+    timer[k].acc = Math.min(MAX_MIN[k], getal(inp.value)) * 60;
     if (getal(inp.value) && !timer.laatst) timer.laatst = k;
-    bewaarTimer();
+    if (!borstGebruikt()) timer.begin = null;
+    bewaarTimer(BORST);
+    zetTijden();
     werkTimersBij();
   });
   inp.addEventListener("focus", () => inp.select());
@@ -287,15 +310,17 @@ for (const kant of $$(".kant")) {
 for (const knop of $$(".laatstekant .segment button")) {
   knop.addEventListener("click", () => {
     timer.laatst = timer.laatst === knop.dataset.eind ? null : knop.dataset.eind;
-    bewaarTimer();
+    bewaarTimer(["laatst"]);
     werkTimersBij();
   });
 }
 $("#kolftimer").addEventListener("click", wisselKolf);
 $("#kolfduur").addEventListener("input", (e) => {
   timer.K.start = null;
-  timer.K.acc = getal(e.target.value) * 60;
-  bewaarTimer();
+  timer.K.acc = Math.min(MAX_MIN.K, getal(e.target.value)) * 60;
+  if (!timer.K.acc) timer.kBegin = null;
+  bewaarTimer(KOLF);
+  zetTijden();
   werkTimersBij();
 });
 $("#kolfduur").addEventListener("focus", (e) => e.target.select());
@@ -306,29 +331,41 @@ const formulieren = {
   kolven: { form: $("#kolfinvoer"), tijd: $("#kolftijd"), handmatig: false, begin: () => timer.kBegin },
 };
 
-function zetTijden() {
-  for (const f of Object.values(formulieren)) {
-    if (!f.handmatig) f.tijd.value = uurMin(f.begin() || Date.now());
-  }
-}
-
 function tijdUitInvoer(input) {
   const [u, m] = input.value.split(":").map(Number);
   const d = new Date();
   d.setHours(u, m, 0, 0);
   // Tijd in de toekomst (bijv. 23:50 ingevuld om 00:10): dan was het gisteren.
+  // Dit wordt naast het tijdveld getoond, zodat het nooit stil gebeurt.
   if (d.getTime() > Date.now() + 5 * 60000) d.setDate(d.getDate() - 1);
   return d.getTime();
 }
 
+function werkDaghintBij(f) {
+  const hint = $(".daghint", f.form);
+  if (!f.tijd.value) return (hint.textContent = "");
+  const t = tijdUitInvoer(f.tijd);
+  const label = dagLabel(t);
+  hint.textContent = label === "Vandaag" ? "vandaag" : label.toLowerCase();
+  hint.classList.toggle("anders", label !== "Vandaag");
+}
+
+function zetTijden() {
+  for (const f of Object.values(formulieren)) {
+    if (!f.handmatig) f.tijd.value = uurMin(f.begin() || Date.now());
+    werkDaghintBij(f);
+  }
+}
+
 for (const [m, f] of Object.entries(formulieren)) {
-  f.tijd.addEventListener("input", () => (f.handmatig = true));
+  f.tijd.addEventListener("input", () => {
+    f.handmatig = true;
+    werkDaghintBij(f);
+  });
   $(".knop-nu", f.form).addEventListener("click", () => {
     f.handmatig = true;
     f.tijd.value = uurMin(Date.now());
-    if (m === "voeding") timer.begin = borstLoopt() || seconden("L") || seconden("R") ? Date.now() : null;
-    else timer.kBegin = seconden("K") ? Date.now() : null;
-    bewaarTimer();
+    werkDaghintBij(f);
   });
 }
 
@@ -366,8 +403,7 @@ function werkKnoppenBij() {
     for (const c of $$(".pil", blok)) c.classList.toggle("gekozen", Number(c.dataset.ml) === v);
   }
   $("#kolftotaal").textContent = `${waardeVan("kolfL") + waardeVan("kolfR")} ml`;
-  $("#invoer .opslaan").disabled =
-    !(waardeVan("kolf") || waardeVan("kunst") || seconden("L") > 0 || seconden("R") > 0 || timer.laatst);
+  $("#invoer .opslaan").disabled = !(waardeVan("kolf") || waardeVan("kunst") || borstGebruikt() || timer.laatst);
   $("#kolfinvoer .opslaan").disabled = !(waardeVan("kolfL") || waardeVan("kolfR") || seconden("K") > 0);
 }
 
@@ -386,6 +422,19 @@ function naOpslaan(id, herstel) {
   });
 }
 
+// Controles tegen vergissingen om 3 uur 's nachts. Geeft false als de ouder annuleert.
+function vergeten(begin, minuten) {
+  if (!begin) return true;
+  const uren = (Date.now() - begin) / 36e5;
+  if (uren < 3 && minuten <= 60) return true;
+  return confirm(`Deze timer liep al sinds ${dagLabel(begin).toLowerCase()} ${uurMin(begin)} (${minuten} min). Klopt dat?\n\nKies Annuleren om de minuten aan te passen of de timer te wissen.`);
+}
+function dubbel(v) {
+  const ander = voedingen.find((x) => x.type === v.type && Math.abs(x.tijd - v.tijd) <= 3 * 60000 && x.door !== v.door);
+  if (!ander) return true;
+  return confirm(`${ander.door || "De andere ouder"} registreerde om ${uurMin(ander.tijd)} al ${v.type === "kolven" ? "een kolfsessie" : "een voeding"}. Toch opslaan?`);
+}
+
 $("#invoer").addEventListener("submit", (e) => {
   e.preventDefault();
   const voeding = {
@@ -397,25 +446,32 @@ $("#invoer").addEventListener("submit", (e) => {
     eindKant: timer.laatst || null,
     door: naam || "",
   };
-  const vorig = { L: { ...timer.L }, R: { ...timer.R }, begin: timer.begin, laatst: timer.laatst, tijd: $("#tijd").value };
+  if (!vergeten(timer.begin, voeding.borstL + voeding.borstR) || !dubbel(voeding)) return;
+  const vorig = structuredClone(Object.fromEntries(BORST.map((k) => [k, timer[k]])));
+  const vorigeTijd = $("#tijd").value;
   const id = store.add(voeding);
-  timer.L = { acc: 0, start: null };
-  timer.R = { acc: 0, start: null };
-  timer.begin = null;
-  timer.laatst = null;
-  bewaarTimer();
+  // Alleen de borsttimer leegmaken als die bij deze voeding hoorde; een losse fles laat
+  // een net gestarte borsttimer van de andere ouder met rust.
+  const metBorst = voeding.borstL || voeding.borstR || voeding.eindKant || borstGebruikt();
+  if (metBorst) {
+    Object.assign(timer, Object.fromEntries(BORST.map((k) => [k, leegTimer()[k]])));
+    bewaarTimer(BORST);
+  }
   $("#kolf").value = 0;
   $("#kunst").value = 0;
   formulieren.voeding.handmatig = false;
   zetTijden();
   werkTimersBij();
   naOpslaan(id, () => {
-    Object.assign(timer, { L: vorig.L, R: vorig.R, begin: vorig.begin, laatst: vorig.laatst });
-    bewaarTimer();
+    if (metBorst) {
+      Object.assign(timer, vorig);
+      bewaarTimer(BORST);
+    }
     $("#kolf").value = voeding.kolf;
     $("#kunst").value = voeding.kunst;
-    $("#tijd").value = vorig.tijd;
+    $("#tijd").value = vorigeTijd;
     formulieren.voeding.handmatig = true;
+    zetTijden();
     werkTimersBij();
   });
 });
@@ -430,23 +486,27 @@ $("#kolfinvoer").addEventListener("submit", (e) => {
     duur: minutenVan("K"),
     door: naam || "",
   };
-  const vorig = { K: { ...timer.K }, kBegin: timer.kBegin, tijd: $("#kolftijd").value };
+  if (!sessie.kolfL && !sessie.kolfR && !confirm("Er is geen opbrengst ingevuld. Toch opslaan met alleen de duur?")) return;
+  if (!vergeten(timer.kBegin, sessie.duur) || !dubbel(sessie)) return;
+  const vorig = structuredClone({ K: timer.K, kBegin: timer.kBegin });
+  const vorigeTijd = $("#kolftijd").value;
   const id = store.add(sessie);
   timer.K = { acc: 0, start: null };
   timer.kBegin = null;
-  bewaarTimer();
+  bewaarTimer(KOLF);
   $("#kolfL").value = 0;
   $("#kolfR").value = 0;
   formulieren.kolven.handmatig = false;
   zetTijden();
   werkTimersBij();
   naOpslaan(id, () => {
-    Object.assign(timer, { K: vorig.K, kBegin: vorig.kBegin });
-    bewaarTimer();
+    Object.assign(timer, vorig);
+    bewaarTimer(KOLF);
     $("#kolfL").value = sessie.kolfL;
     $("#kolfR").value = sessie.kolfR;
-    $("#kolftijd").value = vorig.tijd;
+    $("#kolftijd").value = vorigeTijd;
     formulieren.kolven.handmatig = true;
+    zetTijden();
     werkTimersBij();
   });
 });
@@ -504,7 +564,7 @@ function renderLijst() {
       <button class="item" data-id="${esc(v.id)}">
         <span class="item-tijd">${uurMin(v.tijd)}</span>
         <span class="item-delen">${onderdelen(v).map((o) => `<span class="badge ${o.soort}">${esc(o.tekst)}</span>`).join("")}</span>
-        <span class="item-door">${esc((v.door || "").slice(0, 1).toUpperCase())}</span>
+        <span class="item-door">${esc(v.door || "")}</span>
       </button>`).join("");
     return `<div class="dag"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
   }).join("");
@@ -523,26 +583,69 @@ $("#geschiedenis").addEventListener("click", (e) => {
 });
 
 // ---------- weergave: overzicht ----------
-function dagreeks(n) {
-  const vandaag = dagStart(Date.now());
+// Richtlijn: bij minder dan 500 ml kunstvoeding per dag krijgt een baby extra vitamine K.
+// De app toont alleen de cijfers en de lijn; het besluit hoort bij het consultatiebureau.
+const VITK_ML = 500;
+
+function perDagIndex() {
   const perDag = new Map();
   for (const v of voedingen) {
     const d = dagStart(v.tijd);
     if (!perDag.has(d)) perDag.set(d, []);
     perDag.get(d).push(v);
   }
-  const eerste = voedingen.length ? dagStart(Math.min(...voedingen.map((v) => v.tijd))) : vandaag;
+  return perDag;
+}
+const eersteDag = () => (voedingen.length ? dagStart(Math.min(...voedingen.map((v) => v.tijd))) : dagStart(Date.now()));
+
+function dagreeks(n) {
+  const vandaag = dagStart(Date.now());
+  const perDag = perDagIndex();
+  const eerste = eersteDag();
   const reeks = [];
   for (let i = n - 1; i >= 0; i--) {
     const d = plusDagen(vandaag, -i);
-    reeks.push({ d, t: totalen(perDag.get(d) || []), actief: d >= eerste, vandaag: d === vandaag });
+    const dt = new Date(d);
+    reeks.push({
+      d,
+      t: totalen(perDag.get(d) || []),
+      actief: d >= eerste,
+      lopend: d === vandaag,
+      as: n <= 7 ? dt.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2) : String(dt.getDate()),
+      naam: d === vandaag ? "Vandaag" : dt.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric" }),
+    });
+  }
+  return reeks;
+}
+
+// Per week (maandag t/m zondag): gemiddelde per dag, over de dagen met gegevens.
+function weekreeks(n) {
+  const vandaag = dagStart(Date.now());
+  const dagen = dagreeks(n * 7 + 6).filter((x) => x.actief);
+  const maandag = plusDagen(vandaag, -((new Date(vandaag).getDay() + 6) % 7));
+  const reeks = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const van = plusDagen(maandag, -7 * i);
+    const tot = plusDagen(van, 7);
+    const inWeek = dagen.filter((x) => x.d >= van && x.d < tot && !x.lopend);
+    const t = {};
+    for (const k of Object.keys(totalen([]))) t[k] = inWeek.length ? Math.round(inWeek.reduce((s, x) => s + x.t[k], 0) / inWeek.length) : 0;
+    const dt = new Date(van);
+    reeks.push({
+      d: van,
+      t,
+      actief: inWeek.length > 0,
+      lopend: i === 0,
+      as: `${dt.getDate()}/${dt.getMonth() + 1}`,
+      naam: `${i === 0 ? "Deze week" : "Week " + dt.toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`,
+    });
   }
   return reeks;
 }
 
 // Vergelijk de laatste volle dagen met de dagen ervoor (vandaag telt niet mee, die loopt nog).
 function trend(sleutel) {
-  const reeks = dagreeks(15).filter((x) => x.actief && !x.vandaag);
+  const reeks = dagreeks(15).filter((x) => x.actief && !x.lopend);
   const w = Math.min(7, Math.floor(reeks.length / 2));
   if (w < 2) return null;
   const gem = (arr) => arr.reduce((s, x) => s + x.t[sleutel], 0) / arr.length;
@@ -567,20 +670,21 @@ function renderGisteren() {
   const gist = plusDagen(dagStart(Date.now()), -1);
   const t = totalen(voedingen.filter((v) => dagStart(v.tijd) === gist));
   const datum = new Date(gist).toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
+  const vitk = t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`;
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
     <div class="blik">
-      <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b>${trendTekst("kunst", "ml", "af")}</div>
-      <div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml</small>${trendTekst("kolf", "ml", "op")}</div>
-      <div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min</small>${trendTekst("borst", "min", "op")}</div>
+      <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b><small>${vitk} (vitamine K)</small>${trendTekst("kunst", "ml", "af")}</div>
+      <div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>
+      <div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>
     </div>`;
 }
 
-function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda }) {
+function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn }) {
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const waarden = reeks.map((x) => delen.reduce((s, k) => s + x.t[k], 0));
-  const max = Math.max(10, ...waarden);
+  const max = Math.max(10, ...waarden, lijn ? lijn.waarde * 1.05 : 0);
   const stap = [10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => max / s <= 4) || 1000;
   const top = Math.ceil(max / stap) * stap;
   const bw = (W - pl - pr) / n;
@@ -589,7 +693,7 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda }) {
   for (let v = 0; v <= top; v += stap) {
     svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" class="rast"/><text x="${pl - 4}" y="${y(v) + 3}" class="as" text-anchor="end">${v}</text>`;
   }
-  const volle = reeks.filter((x) => x.actief && !x.vandaag);
+  const volle = reeks.filter((x) => x.actief && !x.lopend);
   reeks.forEach((x, i) => {
     const cx = pl + bw * i + bw / 2;
     const breed = Math.max(3, bw * 0.68);
@@ -597,16 +701,11 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda }) {
     delen.forEach((k, j) => {
       const v = x.t[k];
       if (!v) return;
-      svg += `<rect x="${cx - breed / 2}" width="${breed}" y="${y(basis + v)}" height="${y(basis) - y(basis + v)}" rx="2" fill="${kleuren[j]}" ${x.vandaag ? 'opacity=".45"' : ""}/>`;
+      svg += `<rect x="${cx - breed / 2}" width="${breed}" y="${y(basis + v)}" height="${y(basis) - y(basis + v)}" rx="2" fill="${kleuren[j]}" ${x.lopend ? 'opacity=".45"' : ""}/>`;
       basis += v;
     });
     if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${y(waarden[i]) - 3}" class="waardelabel" text-anchor="middle">${waarden[i]}</text>`;
-    const dt = new Date(x.d);
-    const toon = n <= 7 || n <= 14 || i % 5 === (n - 1) % 5;
-    if (toon) {
-      const lab = n <= 7 ? dt.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2) : dt.getDate();
-      svg += `<text x="${cx}" y="${H - 6}" class="as${x.vandaag ? " nu" : ""}" text-anchor="middle">${lab}</text>`;
-    }
+    if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
   });
   let gemTekst = "";
   if (volle.length) {
@@ -614,48 +713,59 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda }) {
     svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(gem)}" y2="${y(gem)}" class="gemlijn"/>`;
     gemTekst = `gem. ${Math.round(gem)} ${eenheid}/dag`;
   }
+  if (lijn) {
+    svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(lijn.waarde)}" y2="${y(lijn.waarde)}" class="grenslijn"/>
+      <text x="${W - pr - 2}" y="${y(lijn.waarde) - 4}" class="grenslabel" text-anchor="end">${lijn.waarde} ${eenheid}</text>`;
+  }
   const leg = legenda.map((l, j) => `<span><i style="background:${kleuren[j]}"></i>${l}</span>`).join("");
   el.innerHTML = `<div class="grafiekkop"><h2>${titel}</h2><span class="klein-grijs">${gemTekst}</span></div>
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titel} per dag">${svg}</svg>
-    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span></div>`;
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titel} per ${reeks.length > 30 ? "week" : "dag"}">${svg}</svg>
+    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span>${lijn ? `<span><i class="streep grens"></i>${lijn.uitleg}</span>` : ""}</div>`;
 }
 
 function renderOverzicht() {
   if ($("#tab-overzicht").hidden) return;
   renderGisteren();
-  for (const b of $$(".periode button")) b.classList.toggle("aan", Number(b.dataset.dagen) === periode);
-  const reeks = dagreeks(periode);
+  for (const b of $$(".periode button")) b.classList.toggle("aan", b.dataset.dagen === String(periode));
+  const perWeek = periode === "w";
+  const reeks = perWeek ? weekreeks(12) : dagreeks(periode);
   const css = getComputedStyle(document.documentElement);
   const kleur = (v) => css.getPropertyValue(v).trim();
-  staafgrafiek($("#g-borst"), { titel: "Borstvoeding", eenheid: "min", reeks, delen: ["L", "R"], kleuren: [kleur("--borst"), kleur("--borst-licht")], legenda: ["links", "rechts"] });
-  staafgrafiek($("#g-kunst"), { titel: "Kunstvoeding", eenheid: "ml", reeks, delen: ["kunst"], kleuren: [kleur("--kunst")], legenda: ["kunstvoeding"] });
-  staafgrafiek($("#g-kolf"), { titel: "Kolfopbrengst", eenheid: "ml", reeks, delen: ["kolfL", "kolfR"], kleuren: [kleur("--kolf"), kleur("--kolf-licht")], legenda: ["links", "rechts"] });
+  const per = perWeek ? " (gem. per dag, per week)" : "";
+  staafgrafiek($("#g-borst"), { titel: "Borstvoeding" + per, eenheid: "min", reeks, delen: ["L", "R"], kleuren: [kleur("--borst"), kleur("--borst-licht")], legenda: ["links", "rechts"] });
+  staafgrafiek($("#g-kunst"), {
+    titel: "Kunstvoeding" + per, eenheid: "ml", reeks, delen: ["kunst"], kleuren: [kleur("--kunst")], legenda: ["kunstvoeding"],
+    lijn: { waarde: VITK_ML, uitleg: `${VITK_ML} ml (vitamine K-richtlijn)` },
+  });
+  staafgrafiek($("#g-kolf"), { titel: "Kolfopbrengst" + per, eenheid: "ml", reeks, delen: ["kolfL", "kolfR"], kleuren: [kleur("--kolf"), kleur("--kolf-licht")], legenda: ["links", "rechts"] });
 
-  const rijen = [...reeks].reverse().filter((x) => x.actief);
+  const rijen = [...reeks].reverse().filter((x) => x.actief || (x.lopend && !perWeek));
   const som = (k) => rijen.reduce((s, x) => s + x.t[k], 0);
-  const volle = rijen.filter((x) => !x.vandaag);
+  const volle = rijen.filter((x) => !x.lopend || perWeek);
   const gem = (k) => (volle.length ? Math.round(volle.reduce((s, x) => s + x.t[k], 0) / volle.length) : 0);
   // Moedermelk uit de fles alleen tonen als die in deze periode gegeven is.
   const metFles = som("fles") > 0;
   const kol = ["L", "R", "borst", "kunst", ...(metFles ? ["fles"] : []), "kolfL", "kolfR", "kolf"];
   const cel = (x) => kol.map((k) => `<td class="${k === "borst" || k === "kolf" ? "sub" : ""}">${x[k] || "·"}</td>`).join("");
-  const dagNaam = (x) => (x.vandaag ? "Vandaag" : new Date(x.d).toLocaleDateString("nl-NL", { weekday: "short", day: "numeric" }));
+  $("#tabeltitel").textContent = perWeek ? "Per week (gemiddeld per dag)" : "Per dag";
   $("#dagtabel").innerHTML = `
     <thead>
       <tr><th></th><th colspan="3" class="gk borst">Borst (min)</th><th colspan="${metFles ? 2 : 1}" class="gk kunst">Fles (ml)</th><th colspan="3" class="gk kolf">Gekolfd (ml)</th></tr>
-      <tr><th>Dag</th><th>L</th><th>R</th><th>tot</th><th>kunst</th>${metFles ? "<th>mm</th>" : ""}<th>L</th><th>R</th><th>tot</th></tr>
+      <tr><th>${perWeek ? "Week" : "Dag"}</th><th>L</th><th>R</th><th>tot</th><th>kunst</th>${metFles ? "<th>mm</th>" : ""}<th>L</th><th>R</th><th>tot</th></tr>
     </thead>
-    <tbody>${rijen.map((x) => `<tr${x.vandaag ? ' class="nu"' : ""}><th>${dagNaam(x)}</th>${cel(x.t)}</tr>`).join("") || `<tr><td colspan="9" class="leeg">Nog geen gegevens</td></tr>`}</tbody>
+    <tbody>${rijen.map((x) => `<tr${x.lopend ? ' class="nu"' : ""}><th>${x.naam}</th>${cel(x.t)}</tr>`).join("") || `<tr><td colspan="9" class="leeg">Nog geen gegevens</td></tr>`}</tbody>
     <tfoot>
-      <tr><th>Totaal</th>${cel(Object.fromEntries(kol.map((k) => [k, som(k)])))}</tr>
+      ${perWeek ? "" : `<tr><th>Totaal</th>${cel(Object.fromEntries(kol.map((k) => [k, som(k)])))}</tr>`}
       <tr><th>Gem./dag</th>${cel(Object.fromEntries(kol.map((k) => [k, gem(k)])))}</tr>
     </tfoot>`;
-  $("#tabeluitleg").textContent = metFles ? "mm = moedermelk uit de fles. Gemiddelde over volle dagen, vandaag telt niet mee." : "Gemiddelde over volle dagen, vandaag telt niet mee.";
+  $("#tabeluitleg").textContent =
+    (metFles ? "mm = moedermelk uit de fles. " : "") +
+    (perWeek ? "Per week het gemiddelde per dag, over de dagen met registraties." : "Gemiddelde over volle dagen, vandaag telt niet mee.");
 }
 
 for (const b of $$(".periode button")) {
   b.addEventListener("click", () => {
-    periode = Number(b.dataset.dagen);
+    periode = b.dataset.dagen === "w" ? "w" : Number(b.dataset.dagen);
     ls.set("periode", periode);
     renderOverzicht();
   });
@@ -866,10 +976,9 @@ async function start() {
       toast("Synchronisatie mislukt: " + (fout.code || fout.message));
     },
   );
+  // De servertoestand is leidend zodra er geen eigen wijziging meer onderweg is.
   store.volgTimer?.((extern) => {
-    // Negeer oudere versies (bijv. de late bevestiging van een eigen eerdere wijziging).
-    if (!extern || (extern.bijgewerkt || 0) < (timer.bijgewerkt || 0)) return;
-    timer = { ...leegTimer(), ...extern };
+    timer = { ...leegTimer(), ...alleenTimervelden(extern) };
     ls.set("timers", timer);
     zetTijden();
     werkTimersBij();
