@@ -42,9 +42,9 @@
       <button type="button" id="loopt" class="loopt" hidden></button>
 
       <div class="modus segment" role="tablist" aria-label="Wat registreer je?">
-        <button type="button" role="tab" data-modus="borst" class="aan" aria-selected="true">Borst</button>
         <button type="button" role="tab" data-modus="fles" aria-selected="false">Fles</button>
         <button type="button" role="tab" data-modus="kolven" aria-selected="false">Kolven</button>
+        <button type="button" role="tab" data-modus="borst" class="aan" aria-selected="true">Borst</button>
       </div>
 
       <form id="invoer" class="kaart invoer" autocomplete="off" novalidate data-modus="voeding">
@@ -191,10 +191,10 @@
         <button type="button" data-dagen="w">12 weken</button>
       </div>
 
-      <section class="kaart grafiek" id="g-borst"></section>
       <section class="kaart grafiek" id="g-kunst"></section>
       <section class="kaart grafiek" id="g-kolf"></section>
       <section class="kaart grafiek" id="g-samen"></section>
+      <section class="kaart grafiek" id="g-borst"></section>
 
       <section class="kaart">
         <h2 id="tabeltitel">Melk per dag (ml)</h2>
@@ -301,15 +301,20 @@
       <label class="veld">Jouw naam (wordt bij registraties getoond)
         <input type="text" id="i-naam" maxlength="30" placeholder="Bijv. Aisha">
       </label>
-      <div id="i-gedeeld">
-        <div class="veld">Gezinscode
+      <div id="i-gedeeld" class="koppelen">
+        <h3>Koppelen met de andere telefoon</h3>
+        <p class="klein-grijs">Beide telefoons moeten dezelfde gezinscode hebben. Deel de code van deze telefoon, of plak hieronder de link of code van de andere telefoon.</p>
+        <div class="veld">Gezinscode van deze telefoon
           <code id="i-code" class="code"></code>
         </div>
-        <p class="klein-grijs">Open de koppellink op de andere telefoon om dezelfde gegevens te zien.</p>
-        <button type="button" id="i-deel" class="secundair breed">Koppellink delen</button>
-        <button type="button" id="i-kopieer" class="secundair breed">Code kopiëren</button>
-        <p class="klein-grijs">iPhone: zet de app op het beginscherm vanuit de geopende koppellink, dan is hij meteen gekoppeld. Staat de app er al zonder koppeling, plak dan de link of code in het welkomstscherm.</p>
-        <button type="button" id="i-wissel" class="tekstknop">Andere gezinscode invoeren</button>
+        <div class="tweeknop">
+          <button type="button" id="i-deel" class="secundair">Link delen</button>
+          <button type="button" id="i-kopieer" class="secundair">Code kopiëren</button>
+        </div>
+        <label class="veld">Link of code van de andere telefoon
+          <input type="text" id="i-nieuw" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Plak hier de link of code">
+        </label>
+        <button type="button" id="i-koppel" class="primair klein breed">Koppelen</button>
       </div>
       <p class="klein-grijs" id="i-status"></p>
       <div class="knoppen">

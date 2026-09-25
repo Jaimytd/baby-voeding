@@ -70,6 +70,13 @@ async function firestoreStore(gezin) {
     },
     update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch((e) => meldFout(e)),
     remove: (id) => fs.deleteDoc(fs.doc(col, id)).catch((e) => meldFout(e)),
+    // Registraties naar een ander gezin kopiëren (bij koppelen); zelfde id, dus nooit dubbel.
+    async kopieer(naarGezin, lijst) {
+      const naar = fs.collection(db, "gezinnen", naarGezin, "voedingen");
+      const klaar = Promise.all(lijst.map(({ id, ...v }) => fs.setDoc(fs.doc(naar, id), v)));
+      // Offline: niet eindeloos wachten; de schrijfacties staan in de wachtrij en gaan later mee.
+      await Promise.race([klaar, new Promise((z) => setTimeout(z, 8000))]);
+    },
     // Lopende timers delen, zodat beide telefoons dezelfde sessie zien.
     // Alleen de meegegeven velden worden samengevoegd, zodat de andere timers blijven staan.
     zetTimer: (velden, door) =>
@@ -115,6 +122,9 @@ function lokaleStore(gezin) {
     },
     update(id, v) {
       schrijf(lees().map((x) => (x.id === id ? { ...x, ...v } : x)));
+    },
+    kopieer(naarGezin, lijst) {
+      localStorage.setItem("voedingen:" + naarGezin, JSON.stringify([...JSON.parse(localStorage.getItem("voedingen:" + naarGezin) || "[]"), ...lijst]));
     },
     remove(id) {
       schrijf(lees().filter((x) => x.id !== id));

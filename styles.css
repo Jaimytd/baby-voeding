@@ -52,12 +52,14 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* Niet voorbij het einde van de pagina doorveren. */
+html, body { overscroll-behavior-y: none; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--tekst);
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 88px) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 76px) env(safe-area-inset-left);
   -webkit-tap-highlight-color: transparent;
 }
 button, input { font: inherit; color: inherit; }
@@ -432,3 +434,11 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .kkant.actief { border-color: var(--kolf); background: var(--kolf-bg); }
 .kkant.actief .timer { background: var(--kolf); color: #fff; }
 .b-perkant[hidden] { display: none; }
+
+.koppelen { display: grid; gap: 10px; }
+.koppelen h3 { margin: 4px 0 0; font-size: 16px; }
+.tweeknop { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sheet { max-height: calc(100dvh - 24px); overflow-y: auto; }
+.tweeknop button { white-space: nowrap; padding: 0 8px; }
+.blikvak.samen { background: none; border: 1px solid var(--lijn); padding: 8px 14px; }
+.blikvak.samen b { font-size: 20px; }

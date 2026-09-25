@@ -91,7 +91,10 @@ function onderdelen(v) {
       tekst: [`Gekolfd ${L + R} ml`, kant, !perKantDuur && duur && `${duur} min`].filter(Boolean).join(" · "),
     }];
   }
+  // Hoeveelheden (ml) eerst, daarna de borstminuten.
   const delen = [];
+  if (getal(v.kunst)) delen.push({ soort: "kunst", tekst: `${v.kunst} ml kunstvoeding` });
+  if (getal(v.kolf)) delen.push({ soort: "fles", tekst: `${v.kolf} ml moedermelk` });
   const L = getal(v.borstL);
   const R = getal(v.borstR);
   const eind = v.eindKant ? `laatst ${v.eindKant}` : "";
@@ -99,8 +102,6 @@ function onderdelen(v) {
     const tekst = [L && `L ${L}m`, R && `R ${R}m`, eind].filter(Boolean).join(" · ");
     delen.push({ soort: "borst", tekst: L || R ? tekst : `Borst, ${eind}` });
   }
-  if (getal(v.kolf)) delen.push({ soort: "fles", tekst: `${v.kolf} ml moedermelk` });
-  if (getal(v.kunst)) delen.push({ soort: "kunst", tekst: `${v.kunst} ml kunstvoeding` });
   return delen;
 }
 
@@ -834,11 +835,11 @@ function totaalRijen(t) {
   const rij = (kleur, label, waarde, detail = "") =>
     `<div class="totrij"><span class="stip ${kleur}"></span><span class="totlabel">${label}</span><b>${waarde}</b><span class="totdetail">${detail}</span></div>`;
   return (
-    rij("borst", "Borst", `${t.borst} min`, `L ${t.L} · R ${t.R}`) +
     rij("kunst", "Kunstvoeding", `${t.kunst} ml`) +
-    rij("fles", "Moedermelk fles", `${t.fles} ml`) +
     rij("kolf", "Gekolfd", `${t.kolf} ml`, `L ${t.kolfL} · R ${t.kolfR}`) +
     `<div class="totrij som"><span></span><span class="totlabel">Kunstvoeding + gekolfd</span><b>${t.samen} ml</b></div>` +
+    rij("fles", "Moedermelk fles", `${t.fles} ml`) +
+    rij("borst", "Borst", `${t.borst} min`, `L ${t.L} · R ${t.R}`) +
     `<p class="klein-grijs totvoet">${t.borstKeer} keer borst · ${t.voedingen} voedingen · ${t.kolfsessies} keer gekolfd${t.kolfDuur ? ` (${t.kolfDuur} min)` : ""}</p>`
   );
 }
@@ -857,9 +858,9 @@ function renderLijst() {
   const html = dagen.slice(0, dagenZichtbaar).map(([d, lijst]) => {
     const t = totalen(lijst);
     const samenvatting = [
-      t.borst && `borst ${t.borst} min`,
       t.kunst && `kunst ${t.kunst} ml`,
       t.kolf && `gekolfd ${t.kolf} ml`,
+      t.borst && `borst ${t.borst} min`,
     ].filter(Boolean).join(" · ");
     const rijen = lijst.map((v) => `
       <button class="item" data-id="${esc(v.id)}">
@@ -994,9 +995,9 @@ function renderGisteren() {
     <div class="blik">
       <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b><small>${vitk} (vitamine K)</small>${trendTekst("kunst", "ml", null)}</div>
       <div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>
+      <div class="blikvak samen"><span>Kunstvoeding + gekolfd samen</span><b>${t.samen} ml</b></div>
       <div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>
-    </div>
-    <p class="samenregel">Kunstvoeding + gekolfd samen: <b>${t.samen} ml</b></p>`;
+    </div>`;
 }
 
 function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn }) {
@@ -1247,12 +1248,32 @@ $("#i-kopieer").addEventListener("click", async () => {
   }
 });
 
-$("#i-wissel").addEventListener("click", () => {
-  const code = normaliseerCode(prompt("Gezinscode van de andere telefoon:") || "");
-  if (!code) return;
-  if (!geldigeCode(code)) return alert("Deze code klopt niet. Een code is 16 tot 40 letters en cijfers.");
+// Koppelen aan het gezin van de andere telefoon, met de keuze om de eigen registraties mee te nemen.
+$("#i-koppel").addEventListener("click", async () => {
+  const code = normaliseerCode($("#i-nieuw").value);
+  if (!geldigeCode(code)) return toast("Deze link of code klopt niet. Een code is 16 tot 40 letters en cijfers.");
+  if (code === gezin) return toast("Deze telefoon is al aan dit gezin gekoppeld.");
+  const eigen = voedingen.length;
+  let keuze = "nee";
+  if (eigen) {
+    keuze = await kies(`Op deze telefoon staan ${eigen} registraties. Meenemen naar het gezamenlijke overzicht?`, [
+      { tekst: "Meenemen", waarde: "ja" },
+      { tekst: "Niet meenemen", waarde: "nee" },
+    ]);
+    if (!keuze) return;
+  }
+  if (keuze === "ja") {
+    toast("Registraties overzetten...");
+    try {
+      await store.kopieer(code, voedingen);
+    } catch (e) {
+      console.error(e);
+      return toast("Overzetten lukte niet. Controleer de verbinding en probeer het opnieuw.");
+    }
+  }
   ls.set("gezin", code);
-  location.reload();
+  dlgInst.close();
+  location.replace(`${location.pathname}?gezin=${code}`);
 });
 
 // ---------- gezinscode ----------
