@@ -1,25 +1,28 @@
 # Babyvoeding
 
-Eenvoudige app om bij te houden wat de baby krijgt:
+Eenvoudige app om bij te houden wat de baby krijgt, voor twee ouders op twee telefoons.
 
-- **Borstvoeding** per kant (links en rechts), met een timer of door de minuten zelf in te typen
-- **Moedermelk** (gekolfd, in ml)
-- **Kunstvoeding** (extra fles, in ml)
-- **Tijdstip** (staat standaard op nu, of op het moment dat je de borsttimer start)
+## Registreren
 
-Het werkt als app op Android en iPhone (via "Toevoegen aan beginscherm"), synchroniseert live tussen jullie telefoons en blijft werken zonder internet. Wijzigingen worden gedeeld zodra er weer verbinding is.
+Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd onderin beeld.
 
-## Zo werkt het
+- **Borst:** tik op **Start** bij links of rechts. De timer loopt door als het scherm vergrendelt of de app sluit, en blijft dezelfde sessie. Tik op de andere kant om te wisselen. Je kunt de minuten ook intypen of bijstellen, ook terwijl de timer loopt. **Geëindigd met** springt mee met de timer en is ook los aan te tikken.
+- **Fles:** kunstvoeding en/of moedermelk in ml, met snelkeuzes of min en plus. Een fles laat een lopende borsttimer met rust.
+- **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
 
-1. Tik op **Start** bij links of rechts. De timer loopt door, ook als het scherm uitgaat of je de app sluit. Tik op de andere kant om te wisselen; de eerste pauzeert dan vanzelf.
-2. Geen timer gebruikt? Typ het aantal minuten direct in het vakje eronder.
-3. Onder de timers staat **Laatst gebruikt: Links / Rechts**. Die springt vanzelf mee met de timer, maar je kunt hem ook los aantikken. Alleen de kant aangeven zonder minuten mag ook.
-4. Vul eventueel moedermelk en/of kunstvoeding in met de knoppen 30, 60, 90, 120 of met min en plus (stappen van 5 ml).
-5. Tik op **Opslaan**. Per ongeluk? Tik direct op **Ongedaan maken**.
+De lopende timers zijn gedeeld: start Aisha links, dan ziet Jaimy hem ook lopen. Bovenaan staat dan "Nu bezig". Per ongeluk gestart? Tik op **Wissen**. Na opslaan kun je 6 seconden **Ongedaan maken**.
 
-Bovenaan zie je hoe lang de laatste voeding geleden is en welke borst de vorige keer als laatste gebruikt is. Onder **Vandaag** staan de dagtotalen. Tik op een regel in de geschiedenis om hem aan te passen of te verwijderen. Een tijd later dan nu (bijvoorbeeld 23:50 invullen om 00:10) wordt automatisch als gisteren opgeslagen.
+De app helpt tegen vergissingen: een vraag bij een timer die al uren loopt, bij een pauze van meer dan 20 minuten ("nieuwe voeding?"), bij een dubbele registratie binnen 15 minuten en bij kolven zonder opbrengst. Naast de tijd staat "vandaag" of "gisteren".
 
-Het bolletje rechtsboven toont de synchronisatie: groen is gedeeld, oranje wacht op verbinding, grijs is alleen lokaal.
+## Overzicht
+
+- **Gisteren in één blik:** kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
+- **Grafieken** over 7, 14 of 30 dagen of 12 weken: borstvoeding, kunstvoeding (met de 500 ml-lijn), kolfopbrengst en kunstvoeding plus gekolfd samen.
+- **Tabellen per dag of week:** melk (kunstvoeding, gekolfd L/R/totaal, samen) en borstvoeding (L/R/totaal/keer), met totaal en gemiddelde. Tik op een dag om de registraties te zien.
+
+De app toont alleen cijfers. Overleg over vitamine K met het consultatiebureau.
+
+Het bolletje rechtsboven: groen is gesynchroniseerd, oranje wacht op verbinding, grijs is alleen lokaal.
 
 ## Eenmalig instellen (ongeveer 15 minuten)
 
