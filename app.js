@@ -105,36 +105,31 @@ function onderdelen(v) {
   return delen;
 }
 
-// Eén registratie als duidelijke regel(s): wat was het (Fles, Borst, Gekolfd) en hoeveel.
+// Eén registratie als korte regel: wat was het en hoeveel, met alleen de nodige uitsplitsing.
 function regels(v) {
   if (isKolven(v)) {
     const L = getal(v.kolfL);
     const R = getal(v.kolfR);
     const perKantDuur = "duurL" in v || "duurR" in v;
     const kant = perKantDuur
-      ? `L ${L}${getal(v.duurL) ? ` (${getal(v.duurL)}m)` : ""} · R ${R}${getal(v.duurR) ? ` (${getal(v.duurR)}m)` : ""}`
-      : `L ${L} · R ${R}`;
-    return [{ soort: "kolven", label: "Gekolfd", hoofd: `${L + R} ml`, detail: [kant, !perKantDuur && getal(v.duur) && `${getal(v.duur)} min`].filter(Boolean).join(" · ") }];
+      ? `L ${L} (${getal(v.duurL)}m) · R ${R} (${getal(v.duurR)}m)`
+      : `L ${L} · R ${R}${getal(v.duur) ? ` · ${getal(v.duur)} min` : ""}`;
+    return [{ soort: "kolven", wat: "Gekolfd", hoeveel: `${L + R} ml`, detail: kant }];
   }
   const uit = [];
   const kunst = getal(v.kunst);
   const mm = getal(v.kolf);
-  if (kunst || mm) {
-    uit.push({
-      soort: "fles",
-      label: "Fles",
-      hoofd: `${kunst + mm} ml`,
-      detail: [kunst && `${kunst} kunstvoeding`, mm && `${mm} moedermelk`].filter(Boolean).join(" + "),
-    });
-  }
+  if (kunst && mm) uit.push({ soort: "fles", wat: "Fles", hoeveel: `${kunst + mm} ml`, detail: `${kunst} kunstvoeding + ${mm} moedermelk` });
+  else if (kunst) uit.push({ soort: "fles", wat: "Kunstvoeding", hoeveel: `${kunst} ml`, detail: "" });
+  else if (mm) uit.push({ soort: "mm", wat: "Moedermelk", hoeveel: `${mm} ml`, detail: "" });
   const L = getal(v.borstL);
   const R = getal(v.borstR);
   if (L || R || v.eindKant) {
     uit.push({
       soort: "borst",
-      label: "Borst",
-      hoofd: `${L + R} min`,
-      detail: [L && `L ${L}m`, R && `R ${R}m`, v.eindKant && `laatst ${v.eindKant}`].filter(Boolean).join(" · "),
+      wat: "Borst",
+      hoeveel: L || R ? `${L + R} min` : "",
+      detail: [L && `L ${L}`, R && `R ${R}`, v.eindKant && `laatst ${v.eindKant === "L" ? "links" : "rechts"}`].filter(Boolean).join(" · "),
     });
   }
   return uit;
@@ -1068,7 +1063,7 @@ function renderLijst() {
     const rijen = lijst.map((v) => `
       <button class="item" data-id="${esc(v.id)}">
         <span class="item-tijd">${uurMin(v.tijd)}</span>
-        <span class="item-delen">${regels(v).map((g) => `<span class="iregel ${g.soort}"><span class="ilabel">${g.label}</span><b>${esc(g.hoofd)}</b><span class="idetail">${esc(g.detail)}</span></span>`).join("")}</span>
+        <span class="item-delen">${regels(v).map((g) => `<span class="iregel ${g.soort}"><span class="ikop"><i></i>${g.wat} <b>${esc(g.hoeveel)}</b></span>${g.detail ? `<span class="idetail">${esc(g.detail)}</span>` : ""}</span>`).join("")}</span>
         <span class="item-door">${esc(v.door || "")}</span>
       </button>`).join("");
     return `<div class="dag" data-dag="${d}"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
