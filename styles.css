@@ -261,7 +261,7 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 }
 
 /* modus en tabbladen */
-.modus { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 12px; padding: 4px; border-radius: 14px; }
+.modus { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-bottom: 12px; padding: 4px; border-radius: 14px; }
 .modus button { min-height: 48px; font-size: 17px; }
 .modus button.aan { background: var(--kaart); color: var(--tekst); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
 .tabbar {
@@ -367,3 +367,49 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .dagtabel tbody th, .dagtabel tfoot th, .dagtabel thead tr:last-child th:first-child {
   position: sticky; left: 0; background: var(--kaart); z-index: 1; padding-right: 6px;
 }
+
+/* opslaan altijd in beeld, boven de tabbalk */
+.opslaanbalk {
+  position: sticky; bottom: calc(env(safe-area-inset-bottom) + 72px); z-index: 2;
+  margin: 0 -16px -16px; padding: 10px 16px 16px; border-radius: 0 0 var(--radius) var(--radius);
+  background: linear-gradient(to bottom, transparent, var(--kaart) 30%);
+}
+.opslaanbalk .primair { width: 100%; }
+.deel-fles { display: grid; gap: 18px; }
+.deel-fles[hidden] { display: none; }
+.dagtabel tr.tikbaar { cursor: pointer; }
+.dagtabel tr.tikbaar:active { background: var(--veld); }
+
+/* compact, zodat een registratie zonder scrollen past */
+.laatste { padding: 2px 4px 10px; }
+.laatste .sinds { font-size: 22px; }
+.laatste .detail { font-size: 14px; }
+.kantpil { margin-top: 6px; font-size: 14px; padding: 4px 10px; }
+.loopt { min-height: 40px; font-size: 14px; margin-bottom: 10px; }
+.modus { margin-bottom: 10px; }
+.modus button { min-height: 44px; }
+.invoer { gap: 14px; }
+.tijdrij input { font-size: 18px; min-height: 40px; padding: 6px 10px; }
+.soortkop { margin-bottom: 6px; }
+.timer { min-height: 52px; }
+.kant { gap: 6px; padding: 8px; }
+.minuten input { font-size: 18px; }
+.stap { height: 50px; }
+.waarde input { font-size: 24px; }
+.chips .pil { min-height: 38px; padding: 6px 0; }
+.laatstekant { margin-top: 8px; }
+.opslaanbalk { padding-top: 6px; }
+
+/* kolven: links en rechts naast elkaar */
+.kolfkop { margin-bottom: -6px; }
+.kolfkanten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.kolfkanten .soortkop { font-weight: 600; font-size: 15px; justify-content: center; }
+.kolfkanten .soortkop .stip { display: none; }
+.kolfkanten .stepper { grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 4px; }
+.kolfkanten .waarde input { width: 2.4em; }
+.kolfkanten .chips { gap: 4px; }
+.kolfkanten .chips .pil { font-size: 14px; }
+/* de pil over de vorige borst alleen bij borstvoeding */
+body:not([data-modus="borst"]) #laatste-kant { display: none; }
+.kolfkanten .waarde span { display: none; }
+.kolfkanten .waarde input { width: 100%; text-align: center; }

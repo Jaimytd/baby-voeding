@@ -3,7 +3,7 @@ import { maakStore, isGedeeld } from "./store.js";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
-const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60, 80], kolfR: [20, 40, 60, 80] };
+const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
 
@@ -123,6 +123,24 @@ function totalen(lijst) {
   return t;
 }
 
+// ---------- registraties opslaan (ook als de database nog laadt) ----------
+const nieuwId = () => {
+  const tekens = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return [...crypto.getRandomValues(new Uint8Array(20))].map((b) => tekens[b % tekens.length]).join("");
+};
+const wachtrij = [];
+function registreer(v) {
+  const id = nieuwId();
+  if (store) store.add(v, id);
+  else wachtrij.push({ id, v });
+  return id;
+}
+function verwijder(id) {
+  const i = wachtrij.findIndex((x) => x.id === id);
+  if (i >= 0) wachtrij.splice(i, 1);
+  else store?.remove(id);
+}
+
 // ---------- toast ----------
 let toastTimer;
 function toast(tekst, actieTekst, actie) {
@@ -158,15 +176,22 @@ function toonTab(tab) {
 }
 for (const b of $$(".tabbar button")) b.addEventListener("click", () => toonTab(b.dataset.tab));
 
-let modus = "voeding";
+// Drie modi: borst en fles delen één formulier, kolven heeft een eigen formulier.
+let modus = ["borst", "fles", "kolven"].includes(ls.get("modus")) ? ls.get("modus") : "borst";
 function toonModus(m) {
   modus = m;
+  ls.set("modus", m);
   for (const b of $$(".modus button")) {
     b.classList.toggle("aan", b.dataset.modus === m);
     b.setAttribute("aria-selected", b.dataset.modus === m);
   }
-  $("#invoer").hidden = m !== "voeding";
+  $("#invoer").hidden = m === "kolven";
   $("#kolfinvoer").hidden = m !== "kolven";
+  $(".deel-borst").hidden = m !== "borst";
+  $(".deel-fles").hidden = m !== "fles";
+  $("#invoer .opslaan").textContent = m === "fles" ? "Fles opslaan" : "Borstvoeding opslaan";
+  document.body.dataset.modus = m;
+  if (typeof zetTijden === "function") zetTijden();
   werkTimersBij();
 }
 for (const b of $$(".modus button")) b.addEventListener("click", () => toonModus(b.dataset.modus));
@@ -247,7 +272,7 @@ function wisselBorst(k) {
 }
 
 function slaVorigeBorstOp() {
-  store?.add({
+  registreer({
     tijd: timer.begin,
     borstL: minutenVan("L"),
     borstR: minutenVan("R"),
@@ -267,7 +292,12 @@ function wisselKolf() {
   } else {
     if (timer.kBegin && timer.kGepauzeerd && Date.now() - timer.kGepauzeerd > LANGE_PAUZE && seconden("K") > 0) {
       const afronden = confirm(`De vorige kolfsessie van ${uurMin(timer.kBegin)} (${minutenVan("K")} min) is nog niet opgeslagen.\n\nOK: die eerst afronden (opbrengst invullen en opslaan).\nAnnuleren: verdergaan in dezelfde sessie.`);
-      if (afronden) return;
+      if (afronden) {
+        toonModus("kolven");
+        $("#kolfL").focus();
+        $("#kolfL").scrollIntoView({ block: "center" });
+        return;
+      }
     }
     timer.K.start = Date.now();
     timer.kGepauzeerd = null;
@@ -329,12 +359,12 @@ function werkTimersBij() {
 
   // Melding als er een timer loopt in de modus die je nu niet ziet.
   const banner = $("#loopt");
-  const andere = modus === "voeding" ? loopt("K") && "kolven" : borstLoopt() && "voeding";
+  const andere = modus !== "kolven" && loopt("K") ? "kolven" : modus !== "borst" && borstLoopt() ? "borst" : null;
   banner.hidden = !andere;
   if (andere) {
     const k = andere === "kolven" ? "K" : loopt("L") ? "L" : "R";
     const wat = andere === "kolven" ? "Kolven" : `Borstvoeding ${kantNaam(k)}`;
-    banner.textContent = `${wat} loopt: ${mmss(seconden(k))}. Tik om te openen.`;
+    banner.textContent = `${wat} loopt ${mmss(seconden(k))} · openen`;
     banner.dataset.modus = andere;
   }
   werkKnoppenBij();
@@ -377,7 +407,7 @@ $("#kolfduur").addEventListener("focus", (e) => e.target.select());
 
 // ---------- tijdvelden ----------
 const formulieren = {
-  voeding: { form: $("#invoer"), tijd: $("#tijd"), handmatig: false, begin: () => timer.begin },
+  voeding: { form: $("#invoer"), tijd: $("#tijd"), handmatig: false, begin: () => (modus === "borst" ? timer.begin : null) },
   kolven: { form: $("#kolfinvoer"), tijd: $("#kolftijd"), handmatig: false, begin: () => timer.kBegin },
 };
 
@@ -441,19 +471,24 @@ for (const blok of $$(".soort[data-soort]")) {
       werkKnoppenBij();
     });
   }
-  input.addEventListener("input", werkKnoppenBij);
+  input.addEventListener("input", () => {
+    if (getal(input.value) > 1000) input.value = 1000;
+    werkKnoppenBij();
+  });
   input.addEventListener("focus", () => input.select());
 }
 
-const waardeVan = (id) => getal($("#" + id).value);
+// Nooit meer dan 1000 ml: dat weigert de database, en dan zou de invoer verloren gaan.
+const waardeVan = (id) => Math.min(1000, getal($("#" + id).value));
 
 function werkKnoppenBij() {
   for (const blok of $$(".soort[data-soort]")) {
     const v = getal($("input", blok).value);
     for (const c of $$(".pil", blok)) c.classList.toggle("gekozen", Number(c.dataset.ml) === v);
   }
-  $("#kolftotaal").textContent = `${waardeVan("kolfL") + waardeVan("kolfR")} ml`;
-  $("#invoer .opslaan").disabled = !(waardeVan("kolf") || waardeVan("kunst") || borstGebruikt() || timer.laatst);
+  const kolfTot = waardeVan("kolfL") + waardeVan("kolfR");
+  $("#kolftotaal").textContent = kolfTot ? `· ${kolfTot} ml` : "";
+  $("#invoer .opslaan").disabled = modus === "fles" ? !(waardeVan("kolf") || waardeVan("kunst")) : !(borstGebruikt() || timer.laatst);
   $("#kolfinvoer .opslaan").disabled = !(waardeVan("kolfL") || waardeVan("kolfR") || seconden("K") > 0);
 }
 
@@ -473,7 +508,7 @@ function tijdVoor(m) {
 function naOpslaan(id, herstel) {
   navigator.vibrate?.(30);
   toast("Opgeslagen", "Ongedaan maken", () => {
-    store.remove(id);
+    verwijder(id);
     herstel();
   });
 }
@@ -485,40 +520,42 @@ function vergeten(begin, minuten) {
   if (uren < 3 && minuten <= 90) return true;
   return confirm(`Deze timer liep al sinds ${dagLabel(begin).toLowerCase()} ${uurMin(begin)} (${minuten} min). Klopt dat?\n\nKies Annuleren om de minuten aan te passen of de timer te wissen.`);
 }
+// Zelfde soort registratie binnen 15 minuten, van wie dan ook: waarschijnlijk dubbel.
+const soortVan = (v) => (isKolven(v) ? "kolven" : getal(v.borstL) || getal(v.borstR) || v.eindKant ? "borst" : "fles");
 function dubbel(v) {
-  const ander = voedingen.find((x) => x.type === v.type && Math.abs(x.tijd - v.tijd) <= 3 * 60000 && (x.door !== v.door || !v.door));
+  const soort = soortVan(v);
+  const ander = voedingen.find((x) => soortVan(x) === soort && Math.abs(x.tijd - v.tijd) <= 15 * 60000);
   if (!ander) return true;
-  return confirm(`${ander.door || "De andere ouder"} registreerde om ${uurMin(ander.tijd)} al ${v.type === "kolven" ? "een kolfsessie" : "een voeding"}. Toch opslaan?`);
+  const wat = { kolven: "een kolfsessie", borst: "een borstvoeding", fles: "een fles" }[soort];
+  return confirm(`${ander.door || "Er"} ${ander.door ? "registreerde" : "is"} om ${uurMin(ander.tijd)} al ${wat}${ander.door ? "" : " geregistreerd"}. Toch opslaan?`);
 }
 
 $("#invoer").addEventListener("submit", (e) => {
   e.preventDefault();
-  if (!store) return toast("De app is nog aan het laden. Probeer het zo opnieuw.");
-  // Loopt de borstvoeding van de andere ouder en voeg jij een fles toe? Eerst vragen.
-  let metBorst = borstGebruikt() || Boolean(timer.laatst);
-  if (metBorst && timer.bDoor && timer.bDoor !== naam && (waardeVan("kolf") || waardeVan("kunst"))) {
-    metBorst = confirm(`${timer.bDoor} heeft een borstvoeding lopen (${borstTekst() || "nog 0 min"}). Die meenemen in deze registratie?\n\nOK: meenemen en de timer afronden.\nAnnuleren: alleen de fles opslaan.`);
-  }
+  // Borst en fles zijn aparte registraties; een fles laat een lopende borsttimer met rust.
+  const metBorst = modus === "borst";
   const voeding = {
     tijd: metBorst ? tijdVoor("voeding") : tijdUitNu("voeding"),
     borstL: metBorst ? minutenVan("L") : 0,
     borstR: metBorst ? minutenVan("R") : 0,
-    kolf: waardeVan("kolf"),
-    kunst: waardeVan("kunst"),
+    kolf: metBorst ? 0 : waardeVan("kolf"),
+    kunst: metBorst ? 0 : waardeVan("kunst"),
     eindKant: metBorst ? timer.laatst || null : null,
     door: naam || "",
   };
-  if (!vergeten(timer.begin, voeding.borstL + voeding.borstR) || !dubbel(voeding)) return;
+  if (!vergeten(metBorst ? timer.begin : null, voeding.borstL + voeding.borstR) || !dubbel(voeding)) return;
   const vorig = structuredClone(Object.fromEntries(BORST.map((k) => [k, timer[k]])));
   const vorigeTijd = $("#tijd").value;
-  const id = store.add(voeding);
+  const id = registreer(voeding);
   // Alleen de borsttimer leegmaken als die bij deze voeding hoorde.
   if (metBorst) {
     Object.assign(timer, Object.fromEntries(BORST.map((k) => [k, leegTimer()[k]])));
     bewaarTimer(BORST);
   }
-  $("#kolf").value = 0;
-  $("#kunst").value = 0;
+  if (!metBorst) {
+    $("#kolf").value = 0;
+    $("#kunst").value = 0;
+  }
   formulieren.voeding.handmatig = false;
   zetTijden();
   werkTimersBij();
@@ -527,8 +564,10 @@ $("#invoer").addEventListener("submit", (e) => {
       Object.assign(timer, vorig);
       bewaarTimer(BORST);
     }
-    $("#kolf").value = voeding.kolf;
-    $("#kunst").value = voeding.kunst;
+    if (!metBorst) {
+      $("#kolf").value = voeding.kolf;
+      $("#kunst").value = voeding.kunst;
+    }
     $("#tijd").value = vorigeTijd;
     formulieren.voeding.handmatig = true;
     zetTijden();
@@ -538,7 +577,6 @@ $("#invoer").addEventListener("submit", (e) => {
 
 $("#kolfinvoer").addEventListener("submit", (e) => {
   e.preventDefault();
-  if (!store) return toast("De app is nog aan het laden. Probeer het zo opnieuw.");
   const sessie = {
     type: "kolven",
     tijd: tijdVoor("kolven"),
@@ -549,11 +587,10 @@ $("#kolfinvoer").addEventListener("submit", (e) => {
   };
   if (!sessie.kolfL && !sessie.kolfR && !confirm("Er is geen opbrengst ingevuld. Toch opslaan met alleen de duur?")) return;
   if (!vergeten(timer.kBegin, sessie.duur) || !dubbel(sessie)) return;
-  const vorig = structuredClone({ K: timer.K, kBegin: timer.kBegin });
+  const vorig = structuredClone(Object.fromEntries(KOLF.map((k) => [k, timer[k]])));
   const vorigeTijd = $("#kolftijd").value;
-  const id = store.add(sessie);
-  timer.K = { acc: 0, start: null };
-  timer.kBegin = null;
+  const id = registreer(sessie);
+  Object.assign(timer, Object.fromEntries(KOLF.map((k) => [k, leegTimer()[k]])));
   bewaarTimer(KOLF);
   $("#kolfL").value = 0;
   $("#kolfR").value = 0;
@@ -628,7 +665,7 @@ function renderLijst() {
         <span class="item-delen">${onderdelen(v).map((o) => `<span class="badge ${o.soort}">${esc(o.tekst)}</span>`).join("")}</span>
         <span class="item-door">${esc(v.door || "")}</span>
       </button>`).join("");
-    return `<div class="dag"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
+    return `<div class="dag" data-dag="${d}"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
   }).join("");
   const meer = dagen.length > dagenZichtbaar ? `<button id="meer" class="secundair breed">Meer dagen tonen</button>` : "";
   $("#geschiedenis").innerHTML = html + meer || `<p class="leeg">Nog niets geregistreerd. Begin hierboven.</p>`;
@@ -705,12 +742,18 @@ function weekreeks(n) {
       naam: `${i === 0 ? "Deze week" : "Week " + dt.toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`,
     });
   }
+  // Lege weken van voor de eerste registratie weglaten (minimaal 4 weken tonen).
+  while (reeks.length > 4 && !reeks[0].actief) reeks.shift();
   return reeks;
 }
 
 // Vergelijk de laatste volle dagen met de dagen ervoor (vandaag telt niet mee, die loopt nog).
 function trend(sleutel) {
-  const reeks = dagreeks(15).filter((x) => x.actief && !x.lopend);
+  // Half bijgehouden dagen (minder dan de helft van het gebruikelijke aantal registraties) tellen niet mee.
+  const volle = dagreeks(15).filter((x) => x.actief && !x.lopend);
+  const aantallen = volle.map((x) => x.t.aantal).sort((a, b) => a - b);
+  const mediaan = aantallen[Math.floor(aantallen.length / 2)] || 0;
+  const reeks = volle.filter((x) => x.t.aantal >= mediaan / 2);
   const w = Math.min(7, Math.floor(reeks.length / 2));
   if (w < 2) return null;
   const gem = (arr) => arr.reduce((s, x) => s + x.t[sleutel], 0) / arr.length;
@@ -728,7 +771,7 @@ function trendTekst(sleutel, eenheid, goedAls) {
   const kleur = richting === "gelijk" ? "" : richting === goedAls ? "goed" : "let";
   const pct = richting === "gelijk" ? "" : ` (${t.pct > 0 ? "+" : ""}${t.pct}%)`;
   return `<span class="trend ${kleur}">${pijl} ${woord}${pct}</span>
-    <span class="trenduitleg">gem. ${Math.round(t.nu)} ${eenheid}/dag laatste ${t.w} dagen, was ${Math.round(t.toen)}</span>`;
+    <span class="trenduitleg">gem. ${Math.round(t.nu)} ${eenheid}/dag over de laatste ${t.w} volle dagen, daarvoor ${Math.round(t.toen)}</span>`;
 }
 
 function renderGisteren() {
@@ -823,7 +866,7 @@ function renderOverzicht() {
         <tr><th></th>${groepen.map((g) => `<th colspan="${g.kol.length}" class="gk ${g.klasse}">${g.titel}</th>`).join("")}</tr>
         <tr><th>${perWeek ? "Week" : "Dag"}</th>${kol.map((k) => `<th>${k.kop}</th>`).join("")}</tr>
       </thead>
-      <tbody>${rijen.map((x) => `<tr${x.lopend ? ' class="nu"' : ""}><th>${x.naam}</th>${cel(x.t)}</tr>`).join("") || `<tr><td colspan="${kol.length + 1}" class="leeg">Nog geen gegevens</td></tr>`}</tbody>
+      <tbody>${rijen.map((x) => `<tr class="${x.lopend ? "nu" : ""}${perWeek ? "" : " tikbaar"}" data-dag="${x.d}"><th>${x.naam}</th>${cel(x.t)}</tr>`).join("") || `<tr><td colspan="${kol.length + 1}" class="leeg">Nog geen gegevens</td></tr>`}</tbody>
       <tfoot>${perWeek ? "" : rij("Totaal", somRij)}${rij("Gem./dag", gemRij)}</tfoot>`;
   };
   const k = (sleutel, kop, nadruk = false) => ({ sleutel, kop, nadruk });
@@ -840,6 +883,21 @@ function renderOverzicht() {
   $("#tabeluitleg").textContent =
     "k+k = kunstvoeding + gekolfd. " + (metFles ? "mm = moedermelk uit de fles. " : "") +
     (perWeek ? "Per week het gemiddelde per dag, over de dagen met registraties." : "Gemiddelde over dagen met registraties, vandaag telt niet mee.");
+}
+
+// Tik op een dag in de tabel: naar die dag in de geschiedenis, om registraties te controleren.
+for (const t of ["#melktabel", "#borsttabel"]) {
+  $(t).addEventListener("click", (e) => {
+    const rij = e.target.closest("tr.tikbaar");
+    if (!rij) return;
+    const dagen = [...new Set(voedingen.map((v) => dagStart(v.tijd)))];
+    const index = dagen.indexOf(Number(rij.dataset.dag));
+    if (index < 0) return;
+    dagenZichtbaar = Math.max(dagenZichtbaar, index + 1);
+    toonTab("registreren");
+    renderLijst();
+    $(`.dag[data-dag="${rij.dataset.dag}"]`)?.scrollIntoView({ block: "start" });
+  });
 }
 
 for (const b of $$(".periode button")) {
@@ -910,7 +968,7 @@ $("#b-verwijder").addEventListener("click", () => {
   dlgBewerk.close();
   store.remove(id);
   const { id: _, ...kopie } = v;
-  toast("Verwijderd", "Ongedaan maken", () => store.add(kopie));
+  toast("Verwijderd", "Ongedaan maken", () => registreer(kopie));
 });
 
 // ---------- instellingen ----------
@@ -1031,7 +1089,7 @@ async function start() {
   if (!naam || !gezin) await eersteKeer();
   if (urlCode && naam) toast("Gekoppeld aan jullie gezin");
 
-  if (loopt("K") && !borstLoopt()) toonModus("kolven");
+  toonModus(loopt("K") && !borstLoopt() ? "kolven" : borstLoopt() ? "borst" : modus);
   zetTijden();
   werkTimersBij();
 
@@ -1055,6 +1113,8 @@ async function start() {
       toast("Synchronisatie mislukt: " + (fout.code || fout.message));
     },
   );
+  // Registraties van voor de database klaar was alsnog wegschrijven.
+  for (const { id, v } of wachtrij.splice(0)) store.add(v, id);
   // Timeracties van voor de database klaar was alsnog delen, vóór we gaan luisteren.
   if (nogTeDelen.size) {
     store.zetTimer?.(Object.fromEntries([...nogTeDelen].map((k) => [k, timer[k]])), naam || "");
@@ -1074,7 +1134,11 @@ async function start() {
   });
   window.addEventListener("online", () => zetSync(laatsteMeta));
   window.addEventListener("offline", () => zetSync(laatsteMeta));
-  window.addEventListener("opslagfout", (e) => toast("Opslaan mislukt: " + (e.detail?.code || "onbekende fout")));
+  window.addEventListener("opslagfout", (e) => {
+    const { fout, doc, id } = e.detail || {};
+    if (doc) toast("Opslaan mislukt: " + (fout?.code || "onbekende fout"), "Opnieuw", () => store.add(doc, id));
+    else toast("Opslaan mislukt: " + (fout?.code || "onbekende fout"));
+  });
 
   setInterval(() => {
     if (borstLoopt() || loopt("K")) werkTimersBij();

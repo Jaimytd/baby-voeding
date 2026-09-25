@@ -17,7 +17,13 @@ service cloud.firestore {
       allow read, delete: if codeOk(gezin);
       allow write: if codeOk(gezin) && doc == 'timer'
         && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'door', 'bijgewerkt'])
-        && request.resource.data.get('door', '').size() <= 30;
+        && request.resource.data.get('door', '').size() <= 30
+        && timerVeld(request.resource.data, 'L') && timerVeld(request.resource.data, 'R') && timerVeld(request.resource.data, 'K');
+    }
+
+    // Een timer is een map met acc (seconden) en start (tijdstip of null).
+    function timerVeld(d, k) {
+      return !(k in d) || (d[k] is map && d[k].acc is number && (d[k].start == null || d[k].start is int));
     }
 
     function ml(v) {

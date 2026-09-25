@@ -8,9 +8,9 @@ const DAGEN_TERUG = 120;
 // Firestore weigert undefined; maak er null van.
 const schoon = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v === undefined ? null : v)));
 
-const meldFout = (e) => {
-  console.error(e);
-  window.dispatchEvent(new CustomEvent("opslagfout", { detail: e }));
+const meldFout = (fout, doc, id) => {
+  console.error(fout);
+  window.dispatchEvent(new CustomEvent("opslagfout", { detail: { fout, doc, id } }));
 };
 
 export const isGedeeld =() => Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
@@ -58,17 +58,17 @@ async function firestoreStore(gezin) {
     },
     // Schrijfacties niet awaiten in de UI: offline blijft de promise hangen tot er
     // verbinding is, terwijl onSnapshot de wijziging direct laat zien.
-    add(v) {
-      const ref = fs.doc(col);
-      fs.setDoc(ref, v).catch(meldFout);
+    add(v, id) {
+      const ref = id ? fs.doc(col, id) : fs.doc(col);
+      fs.setDoc(ref, v).catch((e) => meldFout(e, v, ref.id));
       return ref.id;
     },
-    update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch(meldFout),
-    remove: (id) => fs.deleteDoc(fs.doc(col, id)).catch(meldFout),
+    update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch((e) => meldFout(e)),
+    remove: (id) => fs.deleteDoc(fs.doc(col, id)).catch((e) => meldFout(e)),
     // Lopende timers delen, zodat beide telefoons dezelfde sessie zien.
     // Alleen de meegegeven velden worden samengevoegd, zodat de andere timers blijven staan.
     zetTimer: (velden, door) =>
-      fs.setDoc(timerDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch(meldFout),
+      fs.setDoc(timerDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch((e) => meldFout(e)),
     volgTimer(cb) {
       return fs.onSnapshot(timerDoc, (snap) => {
         if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());
@@ -99,8 +99,7 @@ function lokaleStore(gezin) {
       cb([...lees()].sort((a, b) => b.tijd - a.tijd), { wachtend: false, uitCache: false });
       return () => luisteraars.delete(cb);
     },
-    add(v) {
-      const id = crypto.randomUUID();
+    add(v, id = String(Date.now()) + Math.random().toString(36).slice(2)) {
       schrijf([...lees(), { ...v, id }]);
       return id;
     },

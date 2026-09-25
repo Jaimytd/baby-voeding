@@ -41,7 +41,8 @@
       <button type="button" id="loopt" class="loopt" hidden></button>
 
       <div class="modus segment" role="tablist" aria-label="Wat registreer je?">
-        <button type="button" role="tab" data-modus="voeding" class="aan" aria-selected="true">Voeding</button>
+        <button type="button" role="tab" data-modus="borst" class="aan" aria-selected="true">Borst</button>
+        <button type="button" role="tab" data-modus="fles" aria-selected="false">Fles</button>
         <button type="button" role="tab" data-modus="kolven" aria-selected="false">Kolven</button>
       </div>
 
@@ -52,7 +53,7 @@
           <button type="button" class="pil klein knop-nu">Nu</button>
         </div>
 
-        <div class="soort">
+        <div class="soort deel-borst">
           <div class="soortkop"><span class="stip borst"></span>Borstvoeding<button type="button" class="wis" id="wis-borst" hidden>Wissen</button></div>
           <div class="kanten">
             <div class="kant" data-kant="L">
@@ -79,16 +80,7 @@
           </div>
         </div>
 
-        <div class="soort" data-soort="kolf">
-          <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)</div>
-          <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
-          </div>
-          <div class="chips"></div>
-        </div>
-
+        <div class="deel-fles" hidden>
         <div class="soort" data-soort="kunst">
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
@@ -99,7 +91,19 @@
           <div class="chips"></div>
         </div>
 
-        <button type="submit" class="primair opslaan" disabled>Voeding opslaan</button>
+        <div class="soort" data-soort="kolf">
+          <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)</div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+          </div>
+          <div class="chips"></div>
+        </div>
+
+        </div>
+
+        <div class="opslaanbalk"><button type="submit" class="primair opslaan" disabled>Borstvoeding opslaan</button></div>
       </form>
 
       <form id="kolfinvoer" class="kaart invoer" autocomplete="off" novalidate data-modus="kolven" hidden>
@@ -119,8 +123,10 @@
           </div>
         </div>
 
+        <div class="soortkop kolfkop"><span class="stip kolf"></span>Opbrengst (ml)</div>
+        <div class="kolfkanten">
         <div class="soort" data-soort="kolfL">
-          <div class="soortkop"><span class="stip kolf"></span>Opbrengst links</div>
+          <div class="soortkop"><span class="stip kolf"></span>Links</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfL" aria-label="Opbrengst links in ml"><span>ml</span></label>
@@ -130,7 +136,7 @@
         </div>
 
         <div class="soort" data-soort="kolfR">
-          <div class="soortkop"><span class="stip kolf"></span>Opbrengst rechts</div>
+          <div class="soortkop"><span class="stip kolf"></span>Rechts</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfR" aria-label="Opbrengst rechts in ml"><span>ml</span></label>
@@ -139,8 +145,8 @@
           <div class="chips"></div>
         </div>
 
-        <div class="kolftotaal">Totaal <b id="kolftotaal">0 ml</b></div>
-        <button type="submit" class="primair opslaan" disabled>Kolven opslaan</button>
+        </div>
+        <div class="opslaanbalk"><button type="submit" class="primair opslaan" disabled>Kolven opslaan <span id="kolftotaal"></span></button></div>
       </form>
 
       <section class="kaart">
