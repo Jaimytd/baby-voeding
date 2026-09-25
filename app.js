@@ -149,6 +149,33 @@ function verwijder(id) {
   else store?.remove(id);
 }
 
+// ---------- scherm aan houden ----------
+// Zolang er een timer loopt, blijft het scherm aan (Screen Wake Lock). Het besturingssysteem
+// geeft de vergrendeling vrij als de app naar de achtergrond gaat; bij terugkomen vragen we opnieuw.
+let schermSlot = null;
+let slotAanvraag = null;
+let slotGeweigerd = 0;
+async function houdSchermAan(aan) {
+  if (!("wakeLock" in navigator) || slotAanvraag) return;
+  try {
+    // Geweigerd (bijv. energiebesparing): niet elke seconde opnieuw proberen.
+    if (aan && !schermSlot && document.visibilityState === "visible" && Date.now() - slotGeweigerd > 30000) {
+      slotAanvraag = navigator.wakeLock.request("screen");
+      schermSlot = await slotAanvraag;
+      schermSlot.addEventListener("release", () => (schermSlot = null));
+    } else if (!aan && schermSlot) {
+      const slot = schermSlot;
+      schermSlot = null;
+      await slot.release();
+    }
+  } catch {
+    schermSlot = null;
+    slotGeweigerd = Date.now();
+  } finally {
+    slotAanvraag = null;
+  }
+}
+
 // ---------- keuzevraag ----------
 // Een eigen venster met duidelijk benoemde knoppen; de eerste is de hoofdkeuze.
 // Geeft de waarde van de gekozen knop, of null bij wegtikken.
@@ -472,6 +499,7 @@ function werkTimersBij() {
   }
   if (kolfLoopt()) delen.push(`kolven ${mmss(seconden(lopendeKolf()))}${timer.kDoor && timer.kDoor !== naam ? ` (${timer.kDoor})` : ""}`);
   bezig.hidden = !delen.length;
+  houdSchermAan(delen.length > 0);
   bezig.textContent = delen.length ? "Nu bezig: " + delen.join(", ") : "";
   werkKnoppenBij();
 }
