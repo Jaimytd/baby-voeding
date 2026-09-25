@@ -413,3 +413,5 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .kolfkanten .waarde span { display: none; }
 .kolfkanten .waarde input { width: 100%; text-align: center; }
+.bezig { margin-top: 6px; font-weight: 700; color: var(--borst); font-variant-numeric: tabular-nums; }
+#i-kopieer { margin-top: 8px; }

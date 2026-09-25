@@ -129,8 +129,11 @@ const nieuwId = () => {
   return [...crypto.getRandomValues(new Uint8Array(20))].map((b) => tekens[b % tekens.length]).join("");
 };
 const wachtrij = [];
-function registreer(v) {
-  const id = nieuwId();
+// Een sessie uit een timer krijgt een vaste id (b_<begin> of k_<begin>): slaan beide
+// telefoons dezelfde sessie op, bijvoorbeeld de ene offline, dan blijft het één registratie.
+function registreer(v, vasteId) {
+  if (!Number.isInteger(v.tijd)) v.tijd = Math.round(Number(v.tijd)) || Date.now();
+  const id = vasteId || nieuwId();
   if (store) store.add(v, id);
   else wachtrij.push({ id, v });
   return id;
@@ -285,7 +288,7 @@ function slaVorigeBorstOp() {
     kunst: 0,
     eindKant: timer.laatst || null,
     door: timer.bDoor || naam || "",
-  });
+  }, `b_${timer.begin}`);
   Object.assign(timer, Object.fromEntries(BORST.map((k) => [k, leegTimer()[k]])));
   formulieren.voeding.handmatig = false;
   toast("Vorige voeding apart opgeslagen");
@@ -372,6 +375,16 @@ function werkTimersBij() {
     banner.textContent = `${wat} loopt ${mmss(seconden(k))} · openen`;
     banner.dataset.modus = andere;
   }
+  // Lopende sessie ook bij "Laatste voeding" tonen, met wie hem startte.
+  const bezig = $("#bezig");
+  const delen = [];
+  if (borstLoopt()) {
+    const k = loopt("L") ? "L" : "R";
+    delen.push(`borstvoeding ${kantNaam(k)} ${mmss(seconden(k))}${timer.bDoor && timer.bDoor !== naam ? ` (${timer.bDoor})` : ""}`);
+  }
+  if (loopt("K")) delen.push(`kolven ${mmss(seconden("K"))}${timer.kDoor && timer.kDoor !== naam ? ` (${timer.kDoor})` : ""}`);
+  bezig.hidden = !delen.length;
+  bezig.textContent = delen.length ? "Nu bezig: " + delen.join(", ") : "";
   werkKnoppenBij();
 }
 $("#loopt").addEventListener("click", (e) => toonModus(e.currentTarget.dataset.modus));
@@ -380,7 +393,16 @@ for (const kant of $$(".kant")) {
   const k = kant.dataset.kant;
   $(".timer", kant).addEventListener("click", () => wisselBorst(k));
   const inp = $(".minuten input", kant);
+  // Een leeg veld (bijv. tijdens corrigeren) doet niets; pas bij verlaten telt leeg als 0,
+  // en een lopende timer blijft dan gewoon staan.
+  inp.addEventListener("focus", () => (voorBijstellen = structuredClone(Object.fromEntries(BORST.map((x) => [x, timer[x]])))));
+  inp.addEventListener("change", () => {
+    if (inp.value === "" && !loopt(k)) inp.dispatchEvent(new Event("input"));
+    else if (inp.value === "") werkTimersBij();
+    meldBijgesteld(BORST);
+  });
   inp.addEventListener("input", () => {
+    if (inp.value === "" && (document.activeElement === inp || loopt(k))) return;
     const min = Math.min(MAX_MIN[k], getal(inp.value));
     if (loopt(k)) {
       // Loopt de timer: bijstellen zonder te stoppen.
@@ -408,7 +430,28 @@ for (const knop of $$(".laatstekant .segment button")) {
   });
 }
 $("#kolftimer").addEventListener("click", wisselKolf);
+
+// Na handmatig bijstellen: melding met ongedaan maken.
+let voorBijstellen = null;
+function meldBijgesteld(velden) {
+  const vorig = voorBijstellen;
+  voorBijstellen = null;
+  if (!vorig || velden.every((x) => JSON.stringify(vorig[x]) === JSON.stringify(timer[x]))) return;
+  toast("Minuten aangepast", "Ongedaan maken", () => {
+    Object.assign(timer, vorig);
+    bewaarTimer(velden);
+    zetTijden();
+    werkTimersBij();
+  });
+}
+$("#kolfduur").addEventListener("focus", () => (voorBijstellen = structuredClone(Object.fromEntries(KOLF.map((x) => [x, timer[x]])))));
+$("#kolfduur").addEventListener("change", (e) => {
+  if (e.target.value === "" && !loopt("K")) e.target.dispatchEvent(new Event("input"));
+  else if (e.target.value === "") werkTimersBij();
+  meldBijgesteld(KOLF);
+});
 $("#kolfduur").addEventListener("input", (e) => {
+  if (e.target.value === "" && (document.activeElement === e.target || loopt("K"))) return;
   const min = Math.min(MAX_MIN.K, getal(e.target.value));
   if (loopt("K")) {
     timer.K.acc = 0;
@@ -432,6 +475,8 @@ const formulieren = {
 
 function tijdUitInvoer(input) {
   const [u, m] = input.value.split(":").map(Number);
+  // Leeg of ongeldig tijdveld (bijv. "Wissen" in de tijdkiezer): dan nu.
+  if (!Number.isInteger(u) || !Number.isInteger(m)) return Date.now();
   const d = new Date();
   d.setHours(u, m, 0, 0);
   // Tijd in de toekomst (bijv. 23:50 ingevuld om 00:10): dan was het gisteren.
@@ -565,7 +610,7 @@ $("#invoer").addEventListener("submit", (e) => {
   if (!vergeten(metBorst ? timer.begin : null, voeding.borstL + voeding.borstR) || !dubbel(voeding)) return;
   const vorig = structuredClone(Object.fromEntries(BORST.map((k) => [k, timer[k]])));
   const vorigeTijd = $("#tijd").value;
-  const id = registreer(voeding);
+  const id = registreer(voeding, metBorst && timer.begin ? `b_${timer.begin}` : null);
   // Alleen de borsttimer leegmaken als die bij deze voeding hoorde.
   if (metBorst) {
     Object.assign(timer, Object.fromEntries(BORST.map((k) => [k, leegTimer()[k]])));
@@ -613,7 +658,7 @@ $("#kolfinvoer").addEventListener("submit", (e) => {
   if (!vergeten(timer.kBegin, sessie.duur) || !dubbel(sessie)) return;
   const vorig = structuredClone(Object.fromEntries(KOLF.map((k) => [k, timer[k]])));
   const vorigeTijd = $("#kolftijd").value;
-  const id = registreer(sessie);
+  const id = registreer(sessie, timer.kBegin ? `k_${timer.kBegin}` : null);
   Object.assign(timer, Object.fromEntries(KOLF.map((k) => [k, leegTimer()[k]])));
   bewaarTimer(KOLF);
   $("#kolfL").value = 0;
@@ -1042,6 +1087,15 @@ $("#i-deel").addEventListener("click", async () => {
   }
 });
 
+$("#i-kopieer").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(gezin);
+    toast("Code gekopieerd");
+  } catch {
+    prompt("Kopieer deze code:", gezin);
+  }
+});
+
 $("#i-wissel").addEventListener("click", () => {
   const code = normaliseerCode(prompt("Gezinscode van de andere telefoon:") || "");
   if (!code) return;
@@ -1066,7 +1120,8 @@ function nieuweCode() {
 function codeUitUrl() {
   const p = new URLSearchParams(location.search);
   const code = normaliseerCode(p.get("gezin") || "");
-  if (p.has("gezin")) history.replaceState(null, "", location.pathname);
+  // De code blijft in de adresbalk staan: zet iemand de app via Safari op het beginscherm,
+  // dan neemt iOS dit adres mee en is de app daar meteen gekoppeld.
   return geldigeCode(code) ? code : "";
 }
 
@@ -1109,6 +1164,7 @@ function zetSync(meta) {
 // ---------- opstarten ----------
 async function start() {
   const urlCode = codeUitUrl();
+  const nieuwGekoppeld = urlCode && urlCode !== gezin;
   if (urlCode) {
     gezin = urlCode;
     ls.set("gezin", gezin);
@@ -1118,7 +1174,7 @@ async function start() {
     $("#melding-lokaal").hidden = false;
   }
   if (!naam || !gezin) await eersteKeer();
-  if (urlCode && naam) toast("Gekoppeld aan jullie gezin");
+  if (nieuwGekoppeld && naam) toast("Gekoppeld aan jullie gezin");
 
   toonModus(loopt("K") && !borstLoopt() ? "kolven" : borstLoopt() ? "borst" : modus);
   zetTijden();

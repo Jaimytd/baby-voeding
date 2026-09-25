@@ -36,6 +36,7 @@
         <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
         <div id="laatste-detail" class="detail"></div>
         <div id="laatste-kant" class="kantpil" hidden></div>
+        <div id="bezig" class="bezig" hidden></div>
       </section>
 
       <button type="button" id="loopt" class="loopt" hidden></button>
@@ -272,6 +273,8 @@
         </div>
         <p class="klein-grijs">Open de koppellink op de andere telefoon om dezelfde gegevens te zien.</p>
         <button type="button" id="i-deel" class="secundair breed">Koppellink delen</button>
+        <button type="button" id="i-kopieer" class="secundair breed">Code kopiëren</button>
+        <p class="klein-grijs">iPhone: zet de app op het beginscherm vanuit de geopende koppellink, dan is hij meteen gekoppeld. Staat de app er al zonder koppeling, plak dan de link of code in het welkomstscherm.</p>
         <button type="button" id="i-wissel" class="tekstknop">Andere gezinscode invoeren</button>
       </div>
       <p class="klein-grijs" id="i-status"></p>
@@ -290,8 +293,8 @@
         <input type="text" id="s-naam" maxlength="30" placeholder="Bijv. Jaimy" required>
       </label>
       <div id="s-gezin">
-        <p class="klein-grijs">Heeft de andere ouder al een gezinscode? Vul die in. Anders maken we een nieuwe.</p>
-        <label class="veld">Gezinscode (optioneel)
+        <p class="klein-grijs">Heeft de andere ouder de app al? Plak hier de koppellink of de gezinscode. Laat leeg om een nieuw gezin te beginnen.</p>
+        <label class="veld">Koppellink of gezinscode (optioneel)
           <input type="text" id="s-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Leeg laten voor nieuw">
         </label>
       </div>
