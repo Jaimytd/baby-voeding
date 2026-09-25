@@ -500,3 +500,4 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .iregel.kolven .ikop i { background: var(--kolf); }
 .ikop b { font-variant-numeric: tabular-nums; }
 .idetail { color: var(--zacht); font-size: 13px; padding-left: 17px; }
+.voorraad:disabled { border-style: dotted; opacity: .85; color: var(--zacht); }
