@@ -231,11 +231,16 @@ const LANGE_PAUZE = 20 * 60000;
 
 // Alleen de gewijzigde velden delen, zodat je nooit de timer van de ander overschrijft.
 // Wijzigingen van voor de database klaar is, worden bewaard en daarna alsnog gedeeld.
+// Alleen velden die echt veranderd zijn t.o.v. de laatst gedeelde stand worden geschreven.
+// Zo overschrijft een telefoon met een verouderde stand nooit een timer die hij niet aanraakte.
 const nogTeDelen = new Set();
+let gedeeld = structuredClone(timer);
 function bewaarTimer(velden) {
   ls.set("timers", timer);
-  if (!store) return velden.forEach((k) => nogTeDelen.add(k));
-  store.zetTimer?.(Object.fromEntries(velden.map((k) => [k, timer[k]])), naam || "");
+  const gewijzigd = velden.filter((k) => JSON.stringify(timer[k]) !== JSON.stringify(gedeeld[k]));
+  for (const k of gewijzigd) gedeeld[k] = structuredClone(timer[k]);
+  if (!store) return gewijzigd.forEach((k) => nogTeDelen.add(k));
+  if (gewijzigd.length) store.zetTimer?.(Object.fromEntries(gewijzigd.map((k) => [k, timer[k]])), naam || "");
 }
 
 function pauzeer(k) {
@@ -376,11 +381,19 @@ for (const kant of $$(".kant")) {
   $(".timer", kant).addEventListener("click", () => wisselBorst(k));
   const inp = $(".minuten input", kant);
   inp.addEventListener("input", () => {
-    // Handmatig typen overschrijft de timer van deze kant.
-    timer[k].start = null;
-    timer[k].acc = Math.min(MAX_MIN[k], getal(inp.value)) * 60;
-    if (getal(inp.value) && !timer.laatst) timer.laatst = k;
+    const min = Math.min(MAX_MIN[k], getal(inp.value));
+    if (loopt(k)) {
+      // Loopt de timer: bijstellen zonder te stoppen.
+      timer[k].acc = 0;
+      timer[k].start = Date.now() - min * 60000;
+    } else {
+      timer[k].acc = min * 60;
+    }
+    if (min && !timer.laatst) timer.laatst = k;
     if (!borstGebruikt()) timer.begin = null;
+    // Vergeten timer bijgesteld: het tijdstip is dan nu min de duur, niet het oude begin.
+    const duur = (seconden("L") + seconden("R")) * 1000;
+    if (timer.begin && timer.begin < Date.now() - duur - 5 * 60000) timer.begin = Date.now() - duur;
     bewaarTimer(BORST);
     zetTijden();
     werkTimersBij();
@@ -396,9 +409,15 @@ for (const knop of $$(".laatstekant .segment button")) {
 }
 $("#kolftimer").addEventListener("click", wisselKolf);
 $("#kolfduur").addEventListener("input", (e) => {
-  timer.K.start = null;
-  timer.K.acc = Math.min(MAX_MIN.K, getal(e.target.value)) * 60;
-  if (!timer.K.acc) timer.kBegin = null;
+  const min = Math.min(MAX_MIN.K, getal(e.target.value));
+  if (loopt("K")) {
+    timer.K.acc = 0;
+    timer.K.start = Date.now() - min * 60000;
+  } else {
+    timer.K.acc = min * 60;
+  }
+  if (!seconden("K")) timer.kBegin = null;
+  if (timer.kBegin && timer.kBegin < Date.now() - min * 60000 - 5 * 60000) timer.kBegin = Date.now() - min * 60000;
   bewaarTimer(KOLF);
   zetTijden();
   werkTimersBij();
@@ -518,7 +537,7 @@ function vergeten(begin, minuten) {
   if (!begin) return true;
   const uren = (Date.now() - begin) / 36e5;
   if (uren < 3 && minuten <= 90) return true;
-  return confirm(`Deze timer liep al sinds ${dagLabel(begin).toLowerCase()} ${uurMin(begin)} (${minuten} min). Klopt dat?\n\nKies Annuleren om de minuten aan te passen of de timer te wissen.`);
+  return confirm(`Deze sessie begon ${dagLabel(begin).toLowerCase()} om ${uurMin(begin)} en duurde ${minuten} min. Wordt zo opgeslagen met tijdstip ${uurMin(begin)}. Klopt dat?\n\nKies Annuleren om de minuten of de tijd aan te passen, of de timer te wissen.`);
 }
 // Zelfde soort registratie binnen 15 minuten, van wie dan ook: waarschijnlijk dubbel.
 const soortVan = (v) => (isKolven(v) ? "kolven" : getal(v.borstL) || getal(v.borstR) || v.eindKant ? "borst" : "fles");
@@ -561,8 +580,13 @@ $("#invoer").addEventListener("submit", (e) => {
   werkTimersBij();
   naOpslaan(id, () => {
     if (metBorst) {
-      Object.assign(timer, vorig);
-      bewaarTimer(BORST);
+      // Is er intussen al een nieuwe borstvoeding gestart (door wie dan ook), dan die niet overschrijven.
+      if (borstGebruikt()) {
+        toast("Er loopt al een nieuwe borstvoeding. De opgeslagen voeding is verwijderd; de timer is niet teruggezet.");
+      } else {
+        Object.assign(timer, vorig);
+        bewaarTimer(BORST);
+      }
     }
     if (!metBorst) {
       $("#kolf").value = voeding.kolf;
@@ -598,8 +622,12 @@ $("#kolfinvoer").addEventListener("submit", (e) => {
   zetTijden();
   werkTimersBij();
   naOpslaan(id, () => {
-    Object.assign(timer, vorig);
-    bewaarTimer(KOLF);
+    if (seconden("K") > 0) {
+      toast("Er loopt al een nieuwe kolfsessie. De opgeslagen sessie is verwijderd; de timer is niet teruggezet.");
+    } else {
+      Object.assign(timer, vorig);
+      bewaarTimer(KOLF);
+    }
     $("#kolfL").value = sessie.kolfL;
     $("#kolfR").value = sessie.kolfR;
     $("#kolftijd").value = vorigeTijd;
@@ -778,7 +806,10 @@ function renderGisteren() {
   const gist = plusDagen(dagStart(Date.now()), -1);
   const t = totalen(voedingen.filter((v) => dagStart(v.tijd) === gist));
   const datum = new Date(gist).toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
-  const vitk = t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`;
+  const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
+  const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
+  const vitk = (t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`) +
+    (week.length ? `; ${onder} van de laatste ${week.length} dagen onder ${VITK_ML} ml` : "");
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
     <div class="blik">
@@ -1124,6 +1155,7 @@ async function start() {
   store.volgTimer?.((extern) => {
     const had = { borst: borstGebruikt(), kolf: seconden("K") > 0 };
     timer = { ...leegTimer(), ...alleenTimervelden(extern) };
+    gedeeld = structuredClone(timer);
     if (extern.door && extern.door !== naam) {
       if (had.borst && !borstGebruikt()) toast(`${extern.door} heeft de borstvoeding opgeslagen of gewist`);
       else if (had.kolf && !(seconden("K") > 0)) toast(`${extern.door} heeft het kolven opgeslagen of gewist`);
@@ -1143,7 +1175,13 @@ async function start() {
   setInterval(() => {
     if (borstLoopt() || loopt("K")) werkTimersBij();
   }, 1000);
+  let dag = dagStart(Date.now());
   setInterval(() => {
+    // Na middernacht de dagtotalen en het overzicht opnieuw opbouwen.
+    if (dagStart(Date.now()) !== dag) {
+      dag = dagStart(Date.now());
+      renderAlles();
+    }
     renderLaatste();
     zetTijden();
   }, 30000);
