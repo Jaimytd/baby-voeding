@@ -218,6 +218,7 @@ const leegTimer = () => ({
 });
 const TIMERVELDEN = Object.keys(leegTimer());
 const alleenTimervelden = (t) => Object.fromEntries(TIMERVELDEN.filter((k) => k in (t || {})).map((k) => [k, t[k]]));
+const standVan = (velden) => JSON.stringify(velden.map((k) => timer[k]));
 let timer = { ...leegTimer(), ...alleenTimervelden(ls.get("timers", null) || ls.get("borsttimer", null)) };
 const seconden = (k) => timer[k].acc + (timer[k].start ? Math.max(0, Date.now() - timer[k].start) / 1000 : 0);
 // Minder dan 15 seconden telt niet (per ongeluk getikt); daarboven minstens 1 minuut.
@@ -238,12 +239,19 @@ const LANGE_PAUZE = 20 * 60000;
 // Zo overschrijft een telefoon met een verouderde stand nooit een timer die hij niet aanraakte.
 const nogTeDelen = new Set();
 let gedeeld = structuredClone(timer);
+let sessieVoorWachtrij = null;
 function bewaarTimer(velden) {
   ls.set("timers", timer);
   const gewijzigd = velden.filter((k) => JSON.stringify(timer[k]) !== JSON.stringify(gedeeld[k]));
+  if (!gewijzigd.length) return;
+  // De sessie zoals deze telefoon hem kende; de server weigert als die intussen anders is.
+  const sessie = { bSessie: gedeeld.begin ?? null, kSessie: gedeeld.kBegin ?? null };
   for (const k of gewijzigd) gedeeld[k] = structuredClone(timer[k]);
-  if (!store) return gewijzigd.forEach((k) => nogTeDelen.add(k));
-  if (gewijzigd.length) store.zetTimer?.(Object.fromEntries(gewijzigd.map((k) => [k, timer[k]])), naam || "");
+  if (!store) {
+    sessieVoorWachtrij ??= sessie;
+    return gewijzigd.forEach((k) => nogTeDelen.add(k));
+  }
+  store.zetTimer?.({ ...Object.fromEntries(gewijzigd.map((k) => [k, timer[k]])), ...sessie }, naam || "");
 }
 
 function pauzeer(k) {
@@ -327,7 +335,9 @@ function wisTimer(velden) {
   bewaarTimer(velden);
   zetTijden();
   werkTimersBij();
+  const na = standVan(velden);
   toast("Timer gewist", "Ongedaan maken", () => {
+    if (standVan(velden) !== na) return toast("De timer is intussen al opnieuw gebruikt; niet teruggezet.");
     Object.assign(timer, vorig);
     bewaarTimer(velden);
     zetTijden();
@@ -444,7 +454,9 @@ function meldBijgesteld(velden) {
   const vorig = voorBijstellen;
   voorBijstellen = null;
   if (!vorig || velden.every((x) => JSON.stringify(vorig[x]) === JSON.stringify(timer[x]))) return;
+  const na = standVan(velden);
   toast("Minuten aangepast", "Ongedaan maken", () => {
+    if (standVan(velden) !== na) return toast("De timer is intussen al veranderd; niet teruggezet.");
     Object.assign(timer, vorig);
     bewaarTimer(velden);
     zetTijden();
@@ -855,7 +867,7 @@ function trendTekst(sleutel, eenheid, goedAls) {
   const richting = Math.abs(t.pct) < 5 ? "gelijk" : t.pct > 0 ? "op" : "af";
   const pijl = { op: "↑", af: "↓", gelijk: "→" }[richting];
   const woord = { op: "neemt toe", af: "neemt af", gelijk: "blijft gelijk" }[richting];
-  const kleur = richting === "gelijk" ? "" : richting === goedAls ? "goed" : "let";
+  const kleur = richting === "gelijk" || !goedAls ? "" : richting === goedAls ? "goed" : "let";
   const pct = richting === "gelijk" ? "" : ` (${t.pct > 0 ? "+" : ""}${t.pct}%)`;
   return `<span class="trend ${kleur}">${pijl} ${woord}${pct}</span>
     <span class="trenduitleg">gem. ${Math.round(t.nu)} ${eenheid}/dag over de laatste ${t.w} volle dagen, daarvoor ${Math.round(t.toen)}</span>`;
@@ -877,7 +889,7 @@ function renderGisteren() {
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
     <div class="blik">
-      <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b><small>${vitk} (vitamine K)</small>${trendTekst("kunst", "ml", "af")}</div>
+      <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b><small>${vitk} (vitamine K)</small>${trendTekst("kunst", "ml", null)}</div>
       <div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>
       <div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>
     </div>
@@ -888,7 +900,8 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const waarden = reeks.map((x) => delen.reduce((s, k) => s + x.t[k], 0));
-  const max = Math.max(10, ...waarden, lijn ? lijn.waarde * 1.05 : 0);
+  // De lopende dag of week bepaalt de schaal niet (die kan uitschieten); zo'n staaf wordt afgekapt.
+  const max = Math.max(10, ...waarden.filter((_, i) => !reeks[i].lopend || reeks.every((x) => x.lopend || !x.actief)), lijn ? lijn.waarde * 1.05 : 0);
   const stap = [10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => max / s <= 4) || 1000;
   const top = Math.ceil(max / stap) * stap;
   const bw = (W - pl - pr) / n;
@@ -904,11 +917,12 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
     let basis = 0;
     delen.forEach((k, j) => {
       const v = x.t[k];
-      if (!v) return;
-      svg += `<rect x="${cx - breed / 2}" width="${breed}" y="${y(basis + v)}" height="${y(basis) - y(basis + v)}" rx="2" fill="${kleuren[j]}" ${x.lopend ? 'opacity=".45"' : ""}/>`;
-      basis += v;
+      if (!v || basis >= top) return;
+      const tot = Math.min(top, basis + v);
+      svg += `<rect x="${cx - breed / 2}" width="${breed}" y="${y(tot)}" height="${y(basis) - y(tot)}" rx="2" fill="${kleuren[j]}" ${x.lopend ? 'opacity=".45"' : ""}/>`;
+      basis = tot;
     });
-    if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${y(waarden[i]) - 3}" class="waardelabel" text-anchor="middle">${waarden[i]}</text>`;
+    if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${Math.max(9, y(Math.min(top, waarden[i])) - 3)}" class="waardelabel" text-anchor="middle">${waarden[i]}</text>`;
     if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
   });
   let gemTekst = "";
@@ -1223,8 +1237,9 @@ async function start() {
   for (const { id, v } of wachtrij.splice(0)) store.add(v, id);
   // Timeracties van voor de database klaar was alsnog delen, vóór we gaan luisteren.
   if (nogTeDelen.size) {
-    store.zetTimer?.(Object.fromEntries([...nogTeDelen].map((k) => [k, timer[k]])), naam || "");
+    store.zetTimer?.({ ...Object.fromEntries([...nogTeDelen].map((k) => [k, timer[k]])), ...sessieVoorWachtrij }, naam || "");
     nogTeDelen.clear();
+    sessieVoorWachtrij = null;
   }
   // De servertoestand is leidend zodra er geen eigen wijziging meer onderweg is.
   store.volgTimer?.((extern) => {
@@ -1241,7 +1256,8 @@ async function start() {
   });
   window.addEventListener("online", () => zetSync(laatsteMeta));
   window.addEventListener("offline", () => zetSync(laatsteMeta));
-  window.addEventListener("timerverouderd", () => toast("Deze timer was intussen al opgeslagen of gewist op de andere telefoon."));
+  window.addEventListener("timerverouderd", () => toast("Deze telefoon liep achter. De actuele timerstand is teruggehaald."));
+  window.addEventListener("alopgeslagen", () => toast("Deze sessie was al opgeslagen op de andere telefoon."));
   window.addEventListener("opslagfout", (e) => {
     const { fout, doc, id } = e.detail || {};
     if (doc) toast("Opslaan mislukt: " + (fout?.code || "onbekende fout"), "Opnieuw", () => store.add(doc, id));

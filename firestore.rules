@@ -9,14 +9,26 @@ service cloud.firestore {
 
     match /gezinnen/{gezin}/voedingen/{id} {
       allow read, delete: if codeOk(gezin);
-      allow create, update: if codeOk(gezin) && geldig(request.resource.data);
+      allow create: if codeOk(gezin) && geldig(request.resource.data);
+      // Aanpassen mag, maar niet de naam van wie het registreerde overschrijven: zo kan een
+      // verouderde telefoon een sessie die de ander al opsloeg niet vervangen.
+      allow update: if codeOk(gezin) && geldig(request.resource.data)
+        && request.resource.data.door == resource.data.door;
     }
 
     // Lopende timers, gedeeld tussen de telefoons.
     match /gezinnen/{gezin}/status/{doc} {
       allow read, delete: if codeOk(gezin);
       allow write: if codeOk(gezin) && doc == 'timer'
-        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'door', 'bijgewerkt'])
+        && request.resource.data.keys().hasOnly(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd', 'bSessie', 'K', 'kBegin', 'kDoor', 'kGepauzeerd', 'kSessie', 'door', 'bijgewerkt'])
+        // Wie de borst- of kolftimer wijzigt, moet de sessie kennen die nu op de server staat.
+        // Een telefoon met een verouderde stand wordt zo geweigerd en krijgt de actuele stand terug.
+        && (resource == null || !gewijzigd(['L', 'R', 'begin', 'laatst', 'bDoor', 'gepauzeerd'])
+            || request.resource.data.get('bSessie', null) == resource.data.get('begin', null))
+        && (resource == null || !gewijzigd(['K', 'kBegin', 'kDoor', 'kGepauzeerd'])
+            || request.resource.data.get('kSessie', null) == resource.data.get('kBegin', null))
+        // Nooit links en rechts tegelijk laten lopen.
+        && !(request.resource.data.get('L', {'start': null}).start != null && request.resource.data.get('R', {'start': null}).start != null)
         && request.resource.data.get('door', '').size() <= 30
         && timerVeld(request.resource.data, 'L') && timerVeld(request.resource.data, 'R') && timerVeld(request.resource.data, 'K')
         // Een timer met tijd erop hoort bij een sessie met een begin. Zo kan een telefoon met een
@@ -28,6 +40,10 @@ service cloud.firestore {
     // Een timer is een map met acc (seconden) en start (tijdstip of null).
     function timerVeld(d, k) {
       return !(k in d) || (d[k] is map && d[k].acc is number && (d[k].start == null || d[k].start is int));
+    }
+
+    function gewijzigd(velden) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(velden);
     }
 
     function leeg(d, k) {

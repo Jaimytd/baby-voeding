@@ -60,7 +60,12 @@ async function firestoreStore(gezin) {
     // verbinding is, terwijl onSnapshot de wijziging direct laat zien.
     add(v, id) {
       const ref = id ? fs.doc(col, id) : fs.doc(col);
-      fs.setDoc(ref, v).catch((e) => meldFout(e, v, ref.id));
+      fs.setDoc(ref, v).catch((e) =>
+        // Een sessie (b_/k_) die de andere telefoon al opsloeg, mag niet overschreven worden.
+        e.code === "permission-denied" && /^[bk]_/.test(ref.id)
+          ? window.dispatchEvent(new CustomEvent("alopgeslagen"))
+          : meldFout(e, v, ref.id),
+      );
       return ref.id;
     },
     update: (id, v) => fs.updateDoc(fs.doc(col, id), v).catch((e) => meldFout(e)),
