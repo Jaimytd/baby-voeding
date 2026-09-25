@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#c2410c"/>
+  <g fill="#fff">
+    <rect x="216" y="92" width="80" height="44" rx="18"/>
+    <path d="M232 60h48a12 12 0 0 1 12 12v20h-72V72a12 12 0 0 1 12-12z"/>
+    <path d="M200 136h112a40 40 0 0 1 40 40v220a56 56 0 0 1-56 56h-80a56 56 0 0 1-56-56V176a40 40 0 0 1 40-40z"/>
+  </g>
+  <g fill="#c2410c" opacity=".9">
+    <rect x="200" y="250" width="56" height="12" rx="6"/>
+    <rect x="200" y="300" width="40" height="12" rx="6"/>
+    <rect x="200" y="350" width="56" height="12" rx="6"/>
+  </g>
+</svg>

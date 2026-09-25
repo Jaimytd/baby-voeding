@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Babyvoeding</title>
+  <meta name="description" content="Snel bijhouden hoeveel voeding de baby krijgt.">
+  <meta name="theme-color" content="#fbf7f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1716" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Voeding">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Voeding</h1>
+    <span id="sync" class="sync" title="Synchronisatie"></span>
+    <button id="knop-instellingen" class="icoonknop" aria-label="Instellingen">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Zm7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.3 7.3 0 0 0-1.69-.98l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.58-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66a.49.49 0 0 0-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65a7.3 7.3 0 0 0 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.66Z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <div id="melding-lokaal" class="melding" hidden>
+      Alleen op dit toestel opgeslagen. Stel Firebase in (zie README) om met twee telefoons te delen.
+    </div>
+
+    <section class="laatste" aria-live="polite">
+      <div class="label">Laatste voeding</div>
+      <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
+      <div id="laatste-detail" class="detail"></div>
+      <div id="laatste-kant" class="kantpil" hidden></div>
+    </section>
+
+    <form id="invoer" class="kaart invoer" autocomplete="off">
+      <div class="rij tijdrij">
+        <label for="tijd">Tijd</label>
+        <input id="tijd" type="time" required>
+        <button type="button" id="knop-nu" class="pil klein">Nu</button>
+      </div>
+
+      <div class="soort">
+        <div class="soortkop"><span class="stip borst"></span>Borstvoeding</div>
+        <div class="kanten">
+          <div class="kant" data-kant="L">
+            <div class="kantnaam">Links</div>
+            <button type="button" class="timer" aria-label="Timer links starten of pauzeren">
+              <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+            </button>
+            <label class="minuten"><input type="number" inputmode="numeric" min="0" max="120" value="" placeholder="0" aria-label="Minuten links"><span>min</span></label>
+          </div>
+          <div class="kant" data-kant="R">
+            <div class="kantnaam">Rechts</div>
+            <button type="button" class="timer" aria-label="Timer rechts starten of pauzeren">
+              <span class="timer-icoon">▶</span><span class="timer-tijd">Start</span>
+            </button>
+            <label class="minuten"><input type="number" inputmode="numeric" min="0" max="120" value="" placeholder="0" aria-label="Minuten rechts"><span>min</span></label>
+          </div>
+        </div>
+        <div class="laatstekant">
+          <span>Laatst gebruikt</span>
+          <div class="segment" role="group" aria-label="Laatst gebruikte borst">
+            <button type="button" data-eind="L" aria-pressed="false">Links</button>
+            <button type="button" data-eind="R" aria-pressed="false">Rechts</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="soort" data-soort="kolf">
+        <div class="soortkop"><span class="stip kolf"></span>Moedermelk (gekolfd)</div>
+        <div class="stepper">
+          <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+          <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kolf" aria-label="Moedermelk in ml"><span>ml</span></label>
+          <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+        </div>
+        <div class="chips"></div>
+      </div>
+
+      <div class="soort" data-soort="kunst">
+        <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
+        <div class="stepper">
+          <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+          <label class="waarde"><input type="number" inputmode="numeric" min="0" max="500" step="5" value="0" id="kunst" aria-label="Kunstvoeding in ml"><span>ml</span></label>
+          <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+        </div>
+        <div class="chips"></div>
+      </div>
+
+      <button type="submit" id="opslaan" class="primair" disabled>Opslaan</button>
+    </form>
+
+    <section class="kaart">
+      <h2>Vandaag</h2>
+      <div class="totalen" id="totalen-vandaag"></div>
+    </section>
+
+    <section>
+      <h2 class="lijstkop">Geschiedenis</h2>
+      <div id="geschiedenis"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden>
+    <span id="toast-tekst"></span>
+    <button id="toast-actie" type="button"></button>
+  </div>
+
+  <!-- Bewerken -->
+  <dialog id="dlg-bewerk" class="sheet">
+    <form method="dialog" id="form-bewerk">
+      <h2>Voeding aanpassen</h2>
+      <label class="veld">Datum en tijd
+        <input type="datetime-local" id="b-tijd" required>
+      </label>
+      <div class="tweeveld">
+        <label class="veld">Borst links (min)
+          <input type="number" inputmode="numeric" min="0" max="120" id="b-links">
+        </label>
+        <label class="veld">Borst rechts (min)
+          <input type="number" inputmode="numeric" min="0" max="120" id="b-rechts">
+        </label>
+      </div>
+      <label class="veld">Laatst gebruikte borst
+        <select id="b-eind">
+          <option value="">Niet aangegeven</option>
+          <option value="L">Links</option>
+          <option value="R">Rechts</option>
+        </select>
+      </label>
+      <label class="veld">Moedermelk (ml)
+        <input type="number" inputmode="numeric" min="0" max="500" id="b-kolf">
+      </label>
+      <label class="veld">Kunstvoeding (ml)
+        <input type="number" inputmode="numeric" min="0" max="500" id="b-kunst">
+      </label>
+      <p class="klein-grijs" id="b-door"></p>
+      <div class="knoppen">
+        <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>
+        <span class="vul"></span>
+        <button value="annuleer" formnovalidate class="secundair">Annuleren</button>
+        <button value="opslaan" class="primair klein">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Instellingen -->
+  <dialog id="dlg-instellingen" class="sheet">
+    <form method="dialog">
+      <h2>Instellingen</h2>
+      <label class="veld">Jouw naam (wordt bij registraties getoond)
+        <input type="text" id="i-naam" maxlength="30" placeholder="Bijv. Aisha">
+      </label>
+      <div id="i-gedeeld">
+        <div class="veld">Gezinscode
+          <code id="i-code" class="code"></code>
+        </div>
+        <p class="klein-grijs">Open de koppellink op de andere telefoon om dezelfde gegevens te zien.</p>
+        <button type="button" id="i-deel" class="secundair breed">Koppellink delen</button>
+        <button type="button" id="i-wissel" class="tekstknop">Andere gezinscode invoeren</button>
+      </div>
+      <p class="klein-grijs" id="i-status"></p>
+      <div class="knoppen">
+        <span class="vul"></span>
+        <button value="sluit" class="primair klein">Klaar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Eerste keer -->
+  <dialog id="dlg-start" class="sheet">
+    <form method="dialog" id="form-start">
+      <h2>Welkom</h2>
+      <label class="veld">Jouw naam
+        <input type="text" id="s-naam" maxlength="30" placeholder="Bijv. Jaimy" required>
+      </label>
+      <div id="s-gezin">
+        <p class="klein-grijs">Heeft de andere ouder al een gezinscode? Vul die in. Anders maken we een nieuwe.</p>
+        <label class="veld">Gezinscode (optioneel)
+          <input type="text" id="s-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Leeg laten voor nieuw">
+        </label>
+      </div>
+      <div class="knoppen">
+        <span class="vul"></span>
+        <button value="start" class="primair klein">Beginnen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
