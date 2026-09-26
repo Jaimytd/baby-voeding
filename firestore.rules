@@ -62,7 +62,7 @@ service cloud.firestore {
 
     function geldig(d) {
       return d.tijd is int && d.door is string && d.door.size() <= 30
-        && (voeding(d) || kolven(d));
+        && (voeding(d) || kolven(d) || luier(d));
     }
 
     // Een voeding: borst (per kant), moedermelk uit de fles en kunstvoeding.
@@ -71,6 +71,12 @@ service cloud.firestore {
         && d.get('type', 'voeding') == 'voeding'
         && minuten(d.borstL) && minuten(d.borstR) && ml(d.kolf) && ml(d.kunst)
         && (d.eindKant == null || d.eindKant in ['L', 'R']);
+    }
+
+    // Een luier: nat en/of poep (allebei nee = droog).
+    function luier(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'nat', 'poep', 'door'])
+        && d.type == 'luier' && d.nat is bool && d.poep is bool;
     }
 
     // Een kolfsessie: duur en opbrengst per borst.

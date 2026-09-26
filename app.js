@@ -59,6 +59,8 @@ const getal = (v) => {
 const kantNaam = (k) => (k === "L" ? "links" : "rechts");
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const isKolven = (v) => v.type === "kolven";
+const isLuier = (v) => v.type === "luier";
+const luierTekst = (v) => (v.nat && v.poep ? "nat + poep" : v.nat ? "nat" : v.poep ? "poep" : "droog");
 
 function dagLabel(t) {
   const vandaag = dagStart(Date.now());
@@ -107,6 +109,7 @@ function onderdelen(v) {
 
 // Eén registratie als korte regel: wat was het en hoeveel, met alleen de nodige uitsplitsing.
 function regels(v) {
+  if (isLuier(v)) return [{ soort: "luier", wat: "Luier", hoeveel: luierTekst(v), detail: "" }];
   if (isKolven(v)) {
     const L = getal(v.kolfL);
     const R = getal(v.kolfR);
@@ -136,8 +139,15 @@ function regels(v) {
 }
 
 function totalen(lijst) {
-  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0, samen: 0, aantal: lijst.length };
+  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0, samen: 0, aantal: 0, luiers: 0, nat: 0, poep: 0 };
   for (const v of lijst) {
+    if (isLuier(v)) {
+      t.luiers++;
+      if (v.nat) t.nat++;
+      if (v.poep) t.poep++;
+      continue;
+    }
+    t.aantal++;
     if (isKolven(v)) {
       t.kolfL += getal(v.kolfL);
       t.kolfR += getal(v.kolfR);
@@ -907,7 +917,7 @@ async function vergeten(begin, minuten) {
   ])) === "ja";
 }
 // Zelfde soort registratie binnen 15 minuten, van wie dan ook: waarschijnlijk dubbel.
-const soortVan = (v) => (isKolven(v) ? "kolven" : getal(v.borstL) || getal(v.borstR) || v.eindKant ? "borst" : "fles");
+const soortVan = (v) => (isLuier(v) ? "luier" : isKolven(v) ? "kolven" : getal(v.borstL) || getal(v.borstR) || v.eindKant ? "borst" : "fles");
 async function dubbel(v) {
   const soort = soortVan(v);
   const ander = voedingen.find((x) => soortVan(x) === soort && Math.abs(x.tijd - v.tijd) <= 15 * 60000);
@@ -1020,9 +1030,21 @@ $("#kolfinvoer").addEventListener("submit", async (e) => {
   });
 });
 
+// ---------- luiers ----------
+// Eén tik: luier opgeslagen met de huidige tijd, met ongedaan maken.
+$("#totalen-vandaag").addEventListener("click", (e) => {
+  const knop = e.target.closest("[data-luier]");
+  if (!knop) return;
+  const soort = knop.dataset.luier;
+  const luier = { type: "luier", tijd: Date.now(), nat: soort === "nat" || soort === "beide", poep: soort === "poep" || soort === "beide", door: naam || "" };
+  const id = registreer(luier);
+  navigator.vibrate?.(30);
+  toast(`Luier opgeslagen: ${luierTekst(luier)}`, "Ongedaan maken", () => verwijder(id));
+});
+
 // ---------- weergave: registreren ----------
 function renderLaatste() {
-  const alleenVoeding = voedingen.filter((v) => !isKolven(v));
+  const alleenVoeding = voedingen.filter((v) => !isKolven(v) && !isLuier(v));
   const laatste = alleenVoeding[0];
   if (!laatste) {
     $("#laatste-sinds").textContent = "Nog niets geregistreerd";
@@ -1054,7 +1076,15 @@ function dagBlok(t) {
   return `
     <div class="blok gevoed"><div class="bkop">Gevoed${t.voedingen ? `<span>${t.voedingen} keer</span>` : ""}</div>${gevoed}</div>
     <div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>
-    ${over || t.kolf ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}`;
+    ${over || t.kolf ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}
+    <div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · ${t.poep} poep` : "nog geen"}</span></div>
+      <div class="luierknoppen">
+        <button type="button" class="pil" data-luier="nat">Nat</button>
+        <button type="button" class="pil" data-luier="poep">Poep</button>
+        <button type="button" class="pil" data-luier="beide">Beide</button>
+        <button type="button" class="pil" data-luier="droog">Droog</button>
+      </div>
+    </div>`;
 }
 
 function renderLijst() {
@@ -1070,7 +1100,7 @@ function renderLijst() {
   const dagen = [...perDag.entries()];
   const html = dagen.slice(0, dagenZichtbaar).map(([d, lijst]) => {
     const t = totalen(lijst);
-    const samenvatting = [t.kunst + t.fles && `fles ${t.kunst + t.fles} ml`, t.borst && `borst ${t.borst} min`, t.kolf && `gekolfd ${t.kolf} ml`].filter(Boolean).join(" · ");
+    const samenvatting = [t.kunst + t.fles && `fles ${t.kunst + t.fles} ml`, t.borst && `borst ${t.borst} min`, t.kolf && `gekolfd ${t.kolf} ml`, t.luiers && `${t.luiers} luier${t.luiers === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
     const rijen = lijst.map((v) => `
       <button class="item" data-id="${esc(v.id)}">
         <span class="item-tijd">${uurMin(v.tijd)}</span>
@@ -1121,7 +1151,7 @@ function dagreeks(n) {
       d,
       t: totalen(perDag.get(d) || []),
       // Alleen dagen met registraties tellen mee in gemiddelden en trends.
-      actief: perDag.has(d),
+      actief: (perDag.get(d) || []).some((v) => !isLuier(v)),
       binnen: d >= eerste,
       lopend: d === vandaag,
       as: n <= 7 ? dt.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2) : String(dt.getDate()),
@@ -1346,8 +1376,12 @@ function openBewerk(id) {
   if (!v) return;
   bewerkId = id;
   const kolven = isKolven(v);
-  $("#b-titel").textContent = kolven ? "Kolven aanpassen" : "Voeding aanpassen";
-  $(".b-voeding", dlgBewerk).hidden = kolven;
+  const luier = isLuier(v);
+  $(".b-luier", dlgBewerk).hidden = !luier;
+  $("#b-nat").checked = Boolean(v.nat);
+  $("#b-poep").checked = Boolean(v.poep);
+  $("#b-titel").textContent = luier ? "Luier aanpassen" : kolven ? "Kolven aanpassen" : "Voeding aanpassen";
+  $(".b-voeding", dlgBewerk).hidden = kolven || luier;
   $(".b-kolven", dlgBewerk).hidden = !kolven;
   $("#b-tijd").value = naarDatetimeLocal(v.tijd);
   $("#b-links").value = getal(v.borstL) || "";
@@ -1372,7 +1406,9 @@ dlgBewerk.addEventListener("close", () => {
   if (dlgBewerk.returnValue === "opslaan" && oud) {
     const tijd = new Date($("#b-tijd").value).getTime();
     const basis = { tijd: Number.isFinite(tijd) ? tijd : oud.tijd };
-    store.update(bewerkId, isKolven(oud)
+    if (isLuier(oud)) {
+      store.update(bewerkId, { ...basis, nat: $("#b-nat").checked, poep: $("#b-poep").checked });
+    } else store.update(bewerkId, isKolven(oud)
       ? {
           ...basis,
           kolfL: getal($("#b-kolfL").value),
