@@ -82,7 +82,17 @@
         </div>
 
         <div class="deel-fles" hidden>
-          <button type="button" id="voorraad" class="voorraad" hidden></button>
+        <div class="soort" data-soort="kolf">
+          <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)<span id="voorraad-kop" class="hint"></span></div>
+          <div class="stepper">
+            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
+            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+          </div>
+          <div class="chips"></div>
+          <div id="voorraad" class="voorraad" hidden></div>
+        </div>
+
         <div class="soort" data-soort="kunst">
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
@@ -93,15 +103,6 @@
           <div class="chips"></div>
         </div>
 
-        <div class="soort" data-soort="kolf">
-          <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)</div>
-          <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
-            <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
-          </div>
-          <div class="chips"></div>
-        </div>
 
         </div>
 

@@ -294,10 +294,7 @@ for (const knop of $$(".wekkerchips .pil")) {
 
 // ---------- gekolfde melk als suggestie bij de fles ----------
 // Wat er nog klaarstaat: opbrengst van de kolfsessies (laatste 48 uur) min de moedermelk die
-// uit de fles gegeven is, oudste melk eerst. Melk die minder dan een uur voor een fles gekolfd
-// is, telt voor die fles nog niet mee: in de praktijk wordt tijdens de voeding al de volgende
-// portie gekolfd, en die is dan nog niet te drinken.
-const RIJP = 60 * 60000;
+// uit de fles gegeven is, oudste melk eerst. De ouder kiest zelf welke portie(s) hij geeft.
 function voorraad() {
   const grens = Date.now() - 48 * 36e5;
   const partijen = [];
@@ -309,15 +306,6 @@ function voorraad() {
       let n = getal(v.kolf);
       for (const p of partijen) {
         if (!n) break;
-        if (p.tijd > v.tijd - RIJP) continue;
-        const deel = Math.min(p.rest, n);
-        p.rest -= deel;
-        n -= deel;
-      }
-      // Meer gegeven dan er klaarstond (bijv. een kolfsessie niet geregistreerd): dan de
-      // nieuwere porties aanspreken, zodat het totaal blijft kloppen.
-      for (const p of partijen) {
-        if (!n) break;
         const deel = Math.min(p.rest, n);
         p.rest -= deel;
         n -= deel;
@@ -327,35 +315,29 @@ function voorraad() {
   return partijen.filter((p) => p.rest > 0);
 }
 function werkVoorraadBij() {
-  const knop = $("#voorraad");
+  // Is er gekolfde melk klaar, dan staan de porties als snelkeuze bij moedermelk
+  // (in plaats van de vaste hoeveelheden).
+  const vak = $("#voorraad");
+  const vast = $('.soort[data-soort="kolf"] .chips');
   const lijst = voorraad();
-  knop.hidden = !lijst.length;
+  vak.hidden = !lijst.length;
+  vast.hidden = Boolean(lijst.length);
+  $("#voorraad-kop").textContent = "";
   if (!lijst.length) return;
-  const flesTijd = formulieren.voeding.handmatig ? tijdUitInvoer($("#tijd")) : Date.now();
-  const klaar = lijst.filter((p) => p.tijd <= flesTijd - RIJP);
-  const vers = lijst.filter((p) => p.tijd > flesTijd - RIJP);
-  const wanneer = (p) => `${dagLabel(p.tijd) === "Vandaag" ? "om" : dagLabel(p.tijd).toLowerCase()} ${uurMin(p.tijd)}`;
-  const versTekst = vers.length
-    ? `<br><span class="klein-grijs">Net gekolfd ${wanneer(vers[0])} (${vers.reduce((s, p) => s + p.rest, 0)} ml) telt nog niet mee</span>`
-    : "";
-  if (!klaar.length) {
-    knop.dataset.ml = "";
-    knop.disabled = true;
-    knop.classList.remove("gebruikt");
-    knop.innerHTML = `Geen eerder gekolfde melk klaar${versTekst}`;
-    return;
-  }
-  knop.disabled = false;
-  const oudste = klaar[0];
-  knop.dataset.ml = oudste.rest;
-  knop.classList.toggle("gebruikt", waardeVan("kolf") === Math.min(1000, oudste.rest));
-  knop.innerHTML = `Gekolfd ${wanneer(oudste)}: nog <b>${oudste.rest} ml</b>` +
-    (klaar.length > 1 ? ` (klaar in totaal ${klaar.reduce((s, p) => s + p.rest, 0)} ml)` : "") +
-    `<br><span class="klein-grijs">Tik om als moedermelk in te vullen</span>${versTekst}`;
+  const totaal = lijst.reduce((s, p) => s + p.rest, 0);
+  $("#voorraad-kop").textContent = `gekolfd klaar: ${totaal} ml`;
+  const wanneer = (p) => (dagLabel(p.tijd) === "Vandaag" ? uurMin(p.tijd) : `${dagLabel(p.tijd) === "Gisteren" ? "gist." : dagLabel(p.tijd).toLowerCase()} ${uurMin(p.tijd)}`);
+  const knop = (ml, tekst) => `<button type="button" class="pil" data-ml="${ml}">${tekst}</button>`;
+  const knoppen = lijst.map((p) => knop(p.rest, `${wanneer(p)} · <b>${p.rest}</b>`));
+  if (lijst.length > 1) knoppen.push(knop(totaal, `Alles · <b>${totaal}</b>`));
+  vak.innerHTML = knoppen.join("");
+  const gekozen = waardeVan("kolf");
+  for (const b of $$("button", vak)) b.classList.toggle("gekozen", Number(b.dataset.ml) === gekozen);
 }
 $("#voorraad").addEventListener("click", (e) => {
-  if (!e.currentTarget.dataset.ml) return;
-  $("#kolf").value = Math.min(1000, Number(e.currentTarget.dataset.ml));
+  const b = e.target.closest("button[data-ml]");
+  if (!b) return;
+  $("#kolf").value = Math.min(1000, Number(b.dataset.ml));
   werkKnoppenBij();
   werkVoorraadBij();
 });
@@ -841,7 +823,6 @@ for (const [m, f] of Object.entries(formulieren)) {
   f.tijd.addEventListener("input", () => {
     f.handmatig = true;
     werkDaghintBij(f);
-    if (m === "voeding") werkVoorraadBij();
   });
   $(".knop-nu", f.form).addEventListener("click", () => {
     f.handmatig = true;
@@ -891,7 +872,7 @@ function werkKnoppenBij() {
   $("#kolftotaal").textContent = kolfTot ? `· ${kolfTot} ml` : "";
   $("#invoer .opslaan").disabled = modus === "fles" ? !(waardeVan("kolf") || waardeVan("kunst")) : !(borstGebruikt() || timer.laatst);
   $("#kolfinvoer .opslaan").disabled = !(waardeVan("kolfL") || waardeVan("kolfR") || kolfGebruikt());
-  if (!$("#voorraad").hidden && $("#voorraad").dataset.ml) $("#voorraad").classList.toggle("gebruikt", waardeVan("kolf") === Number($("#voorraad").dataset.ml));
+  for (const b of $$("#voorraad button")) b.classList.toggle("gekozen", Number(b.dataset.ml) === waardeVan("kolf"));
 }
 
 // ---------- opslaan ----------

@@ -443,13 +443,13 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .blikvak.samen { background: none; border: 1px solid var(--lijn); padding: 8px 14px; }
 .blikvak.samen b { font-size: 20px; }
 
-/* gekolfde melk als suggestie bij de fles */
-.voorraad {
-  width: 100%; border: 2px dashed var(--fles); background: var(--fles-bg); color: var(--tekst);
-  border-radius: 12px; padding: 10px 12px; text-align: left; font-size: 15px; line-height: 1.35;
-}
-.voorraad b { color: var(--fles); }
-.voorraad.gebruikt { border-style: solid; }
+/* gekolfde melk als snelkeuze bij moedermelk */
+.voorraad { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.voorraad[hidden] { display: none; }
+.voorraad .pil { flex: 1 1 auto; padding: 6px 10px; min-height: 40px; font-size: 14px; font-weight: 500; border: 2px dashed var(--fles); background: var(--fles-bg); }
+.voorraad .pil b { font-weight: 800; }
+.voorraad .pil.gekozen { background: var(--fles); border: 2px solid var(--fles); color: #fff; }
+.soort[data-soort="kolf"] .chips[hidden] { display: none; }
 /* wekker bij kolven */
 .wekker { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .wekkerlabel { font-size: 14px; color: var(--zacht); }
@@ -500,4 +500,3 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .iregel.kolven .ikop i { background: var(--kolf); }
 .ikop b { font-variant-numeric: tabular-nums; }
 .idetail { color: var(--zacht); font-size: 13px; padding-left: 17px; }
-.voorraad:disabled { border-style: dotted; opacity: .85; color: var(--zacht); }
