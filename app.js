@@ -6,6 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
+const APP_VERSIE = "24";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1453,6 +1454,7 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-naam").value = naam;
   $("#i-gedeeld").hidden = !isGedeeld();
   $("#i-code").textContent = gezin;
+  $("#i-versie").textContent = `Versie ${APP_VERSIE}`;
   $("#i-status").textContent = isGedeeld()
     ? "Gegevens en lopende timers worden gedeeld via Firebase en werken ook offline."
     : "Lokale modus: gegevens staan alleen op dit toestel.";
@@ -1678,5 +1680,14 @@ async function start() {
 start();
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Nieuwe versie van de app gevonden: één keer herladen zodat hij direct actief is.
+  let herladen = !navigator.serviceWorker.controller; // eerste bezoek: niet herladen
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (herladen || $("#dlg-kies").open || $("#dlg-bewerk").open || $("#dlg-start").open) return;
+    herladen = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+    document.addEventListener("visibilitychange", () => !document.hidden && reg.update().catch(() => {}));
+  }).catch(() => {});
 }

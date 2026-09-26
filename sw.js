@@ -1,5 +1,5 @@
 // Service worker: app werkt ook zonder verbinding. Verhoog VERSIE bij elke release.
-const VERSIE = "v23";
+const VERSIE = "v24";
 const SHELL = [
   "./",
   "index.html",
@@ -35,7 +35,9 @@ self.addEventListener("fetch", (e) => {
   const eigen = url.origin === location.origin;
   const firebaseScript = url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/");
   if (!eigen && !firebaseScript) return;
-  const netwerk = fetch(e.request).then((resp) => {
+  // "no-cache": altijd bij de server navragen of er een nieuwere versie is (GitHub Pages
+  // laat bestanden anders tot 10 minuten in de browsercache staan).
+  const netwerk = fetch(e.request, eigen ? { cache: "no-cache" } : undefined).then((resp) => {
     if (resp.ok) {
       const kopie = resp.clone();
       caches.open(VERSIE).then((c) => c.put(e.request, kopie));
