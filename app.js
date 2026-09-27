@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "24";
+const APP_VERSIE = "25";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -269,31 +269,6 @@ function controleerWekker() {
     clearTimeout(stop);
   });
 }
-// Android: ook een timer in de Klok-app zetten, zodat de wekker afgaat als deze app dicht is.
-// Dit gaat via een intent-link; andere telefoons (iPhone) kunnen dat niet.
-const isAndroid = /Android/i.test(navigator.userAgent);
-let klokAan = ls.get("klokAan", true) !== false;
-function zetKlokTimer(seconden, label) {
-  if (!isAndroid || !klokAan || !wekkerMin || seconden < 30) return;
-  const terug = `${location.origin}${location.pathname}#klokfout`;
-  location.href =
-    "intent:#Intent;action=android.intent.action.SET_TIMER;" +
-    `i.android.intent.extra.alarm.LENGTH=${Math.round(seconden)};` +
-    `S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(label)};` +
-    "B.android.intent.extra.alarm.SKIP_UI=true;" +
-    `S.browser_fallback_url=${encodeURIComponent(terug)};end`;
-}
-$("#klok-optie").hidden = !isAndroid;
-$("#klok-aan").checked = klokAan;
-$("#klok-aan").addEventListener("change", (e) => {
-  klokAan = e.target.checked;
-  ls.set("klokAan", klokAan);
-});
-if (location.hash === "#klokfout") {
-  history.replaceState(null, "", location.pathname + location.search);
-  setTimeout(() => toast("De Klok-app kon geen timer zetten. De wekker in deze app werkt wel zolang hij open is."), 500);
-}
-
 for (const knop of $$(".wekkerchips .pil")) {
   knop.addEventListener("click", () => {
     wekkerMin = Number(knop.dataset.wekker);
@@ -576,12 +551,8 @@ async function wisselKolf(k = "K") {
         return;
       }
     }
-    // Nieuwe start van deze kolftimer met wekker: ook de Klok-app instellen (Android).
-    const nogTeGaan = wekkerMin * 60 - seconden(k);
-    const nieuw = seconden(k) === 0;
     timer[k].start = Date.now();
     timer.kGepauzeerd = null;
-    if (nieuw) setTimeout(() => zetKlokTimer(nogTeGaan, perKant() ? `Kolven ${kantNaam(k[1])}` : "Kolven"), 50);
     if (!timer.kBegin) {
       timer.kBegin = Date.now();
       timer.kDoor = naam || "";
@@ -683,6 +654,7 @@ function werkTimersBij() {
   bezig.hidden = !delen.length;
   houdSchermAan(delen.length > 0);
   for (const knop of $$(".wekkerchips .pil")) knop.classList.toggle("gekozen", Number(knop.dataset.wekker) === wekkerMin);
+  $("#wekker-uitleg").hidden = !wekkerMin;
   controleerWekker();
   bezig.textContent = delen.length ? "Nu bezig: " + delen.join(", ") : "";
   werkKnoppenBij();

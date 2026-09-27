@@ -458,9 +458,8 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .wekkerchips .pil.gekozen { background: var(--kolf); border-color: var(--kolf); color: #fff; }
 #wekker-status { margin: 6px 0 0; }
 #wekker-status:empty { display: none; }
-
-.klokoptie { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--zacht); margin-top: 8px; }
-.klokoptie input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--kolf); }
+#wekker-uitleg { margin: 6px 0 0; }
+#wekker-uitleg[hidden] { display: none; }
 #b-titel:focus { outline: none; }
 /* bewerkvenster: niets buiten beeld */
 .sheet form > * { min-width: 0; }
