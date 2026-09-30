@@ -1,4 +1,4 @@
-import { maakStore, isGedeeld } from "./store.js";
+import { maakStore, isGedeeld, isKapot } from "./store.js";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "25";
+const APP_VERSIE = "26";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1541,17 +1541,58 @@ async function eersteKeer() {
 }
 
 // ---------- synchronisatiestatus ----------
-function zetSync(meta) {
+// Groen bolletje: alles gedeeld. Oranje: nog niet. Duurt dat langer dan een halve minuut,
+// dan staat er tekst bij. Tikken verbindt opnieuw.
+let laatsteMeta = null;
+let probleemSinds = 0;
+let laatstHerverbonden = 0;
+function zetSync(meta = laatsteMeta) {
   const el = $("#sync");
-  if (!store.gedeeld) {
+  if (!store?.gedeeld) {
     el.className = "sync lokaal";
     el.title = "Alleen lokaal";
     return;
   }
-  const wacht = meta?.wachtend || meta?.uitCache || !navigator.onLine;
-  el.className = "sync " + (wacht ? "wacht" : "ok");
-  el.title = wacht ? "Nog niet gesynchroniseerd: wacht op verbinding" : "Gesynchroniseerd";
+  const wacht = !meta || meta.wachtend || meta.uitCache || !navigator.onLine;
+  if (!wacht) probleemSinds = 0;
+  else probleemSinds ||= Date.now();
+  const probleem = wacht && Date.now() - probleemSinds > 30000;
+  el.className = "sync " + (wacht ? "wacht" : "ok") + (probleem ? " probleem" : "");
+  el.textContent = probleem ? (navigator.onLine ? "Geen verbinding" : "Offline") : "";
+  el.title = wacht ? "Nog niet gesynchroniseerd: tik om opnieuw te verbinden" : "Gesynchroniseerd";
 }
+function herverbind() {
+  if (!store?.herverbind || !navigator.onLine) return;
+  laatstHerverbonden = Date.now();
+  store.herverbind();
+}
+function syncMelding() {
+  if (!store?.gedeeld) return toast("Deze telefoon deelt niets: er is geen database ingesteld.");
+  if (!navigator.onLine) return toast("Geen internet. Wat je nu invult, wordt gedeeld zodra er weer verbinding is.");
+  const wacht = !laatsteMeta || laatsteMeta.wachtend || laatsteMeta.uitCache;
+  herverbind();
+  toast(wacht
+    ? "Opnieuw verbinden..."
+    : "Alles is gedeeld. Voor de zekerheid opnieuw verbonden.");
+}
+
+// De lokale opslag van de browser is weggevallen (vooral iPhone na lang op de achtergrond).
+// Herladen herstelt dat; niet terwijl iemand iets aan het invullen is.
+let moetHerladen = false;
+function herlaadVeilig() {
+  const bezig = [...document.querySelectorAll("dialog")].some((d) => d.open)
+    || document.activeElement?.matches?.("input, textarea, select");
+  if (document.hidden) return void (moetHerladen = true);
+  if (bezig) return toast("De verbinding met de opslag is weggevallen.", "Herladen", () => location.reload());
+  let vorige = 0;
+  try { vorige = Number(sessionStorage.getItem("herladenOm")) || 0; } catch {}
+  if (Date.now() - vorige < 60000) return toast("De verbinding met de opslag is weggevallen.", "Herladen", () => location.reload());
+  try { sessionStorage.setItem("herladenOm", String(Date.now())); } catch {}
+  location.reload();
+}
+window.addEventListener("opslagkapot", herlaadVeilig);
+window.addEventListener("unhandledrejection", (e) => isKapot(e.reason) && herlaadVeilig());
+window.addEventListener("error", (e) => isKapot(e.error || e.message) && herlaadVeilig());
 
 // ---------- opstarten ----------
 async function start() {
@@ -1579,7 +1620,6 @@ async function start() {
     toast("Kon de database niet laden. Controleer de verbinding.");
     return;
   }
-  let laatsteMeta;
   store.subscribe(
     (lijst, meta) => {
       voedingen = lijst;
@@ -1588,8 +1628,10 @@ async function start() {
       renderAlles();
     },
     (fout) => {
+      // De store probeert het zelf opnieuw; het bolletje laat zien dat het nog niet lukt.
       console.error(fout);
-      toast("Synchronisatie mislukt: " + (fout.code || fout.message));
+      if (fout.code === "permission-denied") toast("Geen toegang tot de gedeelde gegevens. Controleer de koppeling.");
+      zetSync();
     },
   );
   // Registraties van voor de database klaar was alsnog wegschrijven.
@@ -1613,8 +1655,17 @@ async function start() {
     zetTijden();
     werkTimersBij();
   });
-  window.addEventListener("online", () => zetSync(laatsteMeta));
-  window.addEventListener("offline", () => zetSync(laatsteMeta));
+  window.addEventListener("online", () => {
+    zetSync();
+    herverbind();
+  });
+  window.addEventListener("offline", () => zetSync());
+  $("#sync").addEventListener("click", syncMelding);
+  // Waakhond: lukt het delen al even niet terwijl er internet is, zelf opnieuw verbinden.
+  setInterval(() => {
+    zetSync();
+    if (probleemSinds && Date.now() - probleemSinds > 15000 && Date.now() - laatstHerverbonden > 30000) herverbind();
+  }, 5000);
   window.addEventListener("timerverouderd", () => toast("Deze telefoon liep achter. De actuele timerstand is teruggehaald."));
   window.addEventListener("alopgeslagen", () => toast("Deze sessie was al opgeslagen op de andere telefoon."));
   window.addEventListener("opslagfout", (e) => {
@@ -1639,6 +1690,10 @@ async function start() {
   let verborgenSinds = 0;
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return void (verborgenSinds = Date.now());
+    if (moetHerladen) return herlaadVeilig();
+    // Terug in de app na een tijd weg: de verbinding kan stil zijn blijven hangen
+    // (groen bolletje, maar geen nieuwe gegevens). Opnieuw verbinden haalt alles op.
+    if (verborgenSinds && Date.now() - verborgenSinds > 20000) herverbind();
     // Na een tijd weg: een eerder handmatig ingevulde tijd niet laten staan.
     if (verborgenSinds && Date.now() - verborgenSinds > 10 * 60000) {
       for (const f of Object.values(formulieren)) f.handmatig = false;

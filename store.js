@@ -8,8 +8,16 @@ const DAGEN_TERUG = 120;
 // Firestore weigert undefined; maak er null van.
 const schoon = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v === undefined ? null : v)));
 
+// De lokale database van de browser (IndexedDB) kan wegvallen, vooral op iPhone na een tijd op
+// de achtergrond. Firestore werkt daarna niet meer tot de pagina herladen is.
+export const isKapot = (e) => /IndexedDB|INTERNAL ASSERTION|database connection is closing/i.test(String(e?.message || e));
+const kapot = (e) => {
+  if (isKapot(e)) window.dispatchEvent(new CustomEvent("opslagkapot"));
+};
+
 const meldFout = (fout, doc, id) => {
   console.error(fout);
+  kapot(fout);
   window.dispatchEvent(new CustomEvent("opslagfout", { detail: { fout, doc, id } }));
 };
 
@@ -37,24 +45,56 @@ async function firestoreStore(gezin) {
   const col = fs.collection(db, "gezinnen", gezin, "voedingen");
   const timerDoc = fs.doc(db, "gezinnen", gezin, "status", "timer");
 
+  // Een listener die een fout krijgt, stopt voorgoed. Daarom na een fout zelf opnieuw
+  // beginnen, met oplopende wachttijd (2 s, 4 s, ... tot 1 minuut).
+  const blijfVolgen = (maak, fout) => {
+    let stop = () => {};
+    let poging = 0;
+    const begin = () => {
+      stop = maak(
+        () => (poging = 0),
+        (e) => {
+          fout?.(e);
+          kapot(e);
+          setTimeout(begin, Math.min(60000, 2000 * 2 ** poging++));
+        },
+      );
+    };
+    begin();
+    return () => stop();
+  };
+  // Opnieuw verbinden: na een tijd op de achtergrond blijft de verbinding op iPhone en
+  // Android soms hangen zonder foutmelding. Uit en weer aan zetten forceert een nieuwe.
+  let bezig = null;
+  const herverbind = () =>
+    (bezig ??= fs.disableNetwork(db)
+      .then(() => fs.enableNetwork(db))
+      .catch((e) => kapot(e))
+      .finally(() => (bezig = null)));
+
   return {
     gedeeld: true,
+    herverbind,
     subscribe(cb, fout) {
-      const q = fs.query(
-        col,
-        fs.where("tijd", ">=", Date.now() - DAGEN_TERUG * 864e5),
-        fs.orderBy("tijd", "desc"),
-      );
-      return fs.onSnapshot(
-        q,
-        { includeMetadataChanges: true },
-        (snap) =>
-          cb(
-            snap.docs.map((d) => ({ id: d.id, ...d.data() })),
-            { wachtend: snap.metadata.hasPendingWrites, uitCache: snap.metadata.fromCache },
-          ),
-        fout,
-      );
+      return blijfVolgen((gelukt, mislukt) => {
+        const q = fs.query(
+          col,
+          fs.where("tijd", ">=", Date.now() - DAGEN_TERUG * 864e5),
+          fs.orderBy("tijd", "desc"),
+        );
+        return fs.onSnapshot(
+          q,
+          { includeMetadataChanges: true },
+          (snap) => {
+            gelukt();
+            cb(
+              snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+              { wachtend: snap.metadata.hasPendingWrites, uitCache: snap.metadata.fromCache },
+            );
+          },
+          mislukt,
+        );
+      }, fout);
     },
     // Schrijfacties niet awaiten in de UI: offline blijft de promise hangen tot er
     // verbinding is, terwijl onSnapshot de wijziging direct laat zien.
@@ -87,9 +127,16 @@ async function firestoreStore(gezin) {
           : meldFout(e),
       ),
     volgTimer(cb) {
-      return fs.onSnapshot(timerDoc, (snap) => {
-        if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());
-      });
+      return blijfVolgen((gelukt, mislukt) =>
+        fs.onSnapshot(
+          timerDoc,
+          (snap) => {
+            gelukt();
+            if (!snap.metadata.hasPendingWrites && snap.exists()) cb(snap.data());
+          },
+          mislukt,
+        ),
+      );
     },
   };
 }
