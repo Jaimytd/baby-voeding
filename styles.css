@@ -563,3 +563,9 @@ body.zonder-luiers [data-deel~="luiers"] { display: none !important; }
 .veld.check { display: flex; align-items: center; gap: 10px; color: var(--tekst); font-size: 16px; }
 .veld.check input { width: 22px; height: 22px; }
 .tweeveld:has(> [hidden]) { grid-template-columns: minmax(0, 1fr); }
+
+/* tijd tussen voedingen */
+.pauzesom { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; font-size: 14px; color: var(--zacht); }
+.pauzesom b { color: var(--tekst); }
+.pauzesom small { font-size: 12px; }
+.pauzeuitleg { margin: 8px 0 0; }

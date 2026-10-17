@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "27";
+const APP_VERSIE = "28";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -183,6 +183,28 @@ function voedmomenten(lijst) {
   return momenten;
 }
 const tussenpozen = (momenten) => momenten.slice(1).map((m, i) => ({ van: momenten[i].tijd, tot: m.tijd, duur: m.tijd - momenten[i].tijd }));
+// Pauzes tussen voedingen die eindigen tussen van en tot. De pauze vanaf de laatste voeding
+// van de dag ervoor telt mee (de nacht). Langer dan 12 uur is vrijwel zeker een vergeten
+// registratie en telt niet mee.
+const MAX_PAUZE = 12 * 36e5;
+function pauzesIn(van, tot) {
+  const momenten = voedmomenten(voedingen.filter((v) => v.tijd >= van - MAX_PAUZE && v.tijd < tot));
+  return tussenpozen(momenten).filter((p) => p.tot >= van && p.duur <= MAX_PAUZE);
+}
+function pauzeStats(pauzes) {
+  if (!pauzes.length) return null;
+  const duren = pauzes.map((p) => p.duur);
+  return {
+    gem: duren.reduce((s, d) => s + d, 0) / duren.length,
+    min: pauzes.reduce((x, p) => (p.duur < x.duur ? p : x)),
+    max: pauzes.reduce((x, p) => (p.duur > x.duur ? p : x)),
+    n: pauzes.length,
+  };
+}
+const uurKort = (ms) => {
+  const min = Math.round(ms / 60000);
+  return `${Math.floor(min / 60)}:${pad(min % 60)}`;
+};
 function duurTekst(ms) {
   const min = Math.round(ms / 60000);
   const u = Math.floor(min / 60);
@@ -1264,12 +1286,11 @@ function renderGisteren() {
   }
   const vakken = [];
   if (heeft("fles")) {
-    // Langste pauze: ook de pauze vanaf de laatste voeding van eergisteren telt mee.
-    const momenten = voedmomenten(voedingen.filter((v) => v.tijd >= plusDagen(gist, -1) && v.tijd < plusDagen(gist, 1)));
-    const langst = tussenpozen(momenten).filter((p) => p.tot >= gist).sort((x, y) => y.duur - x.duur)[0];
+    const p = pauzeStats(pauzesIn(gist, plusDagen(gist, 1)));
     const flesMl = t.kunst + t.fles;
     vakken.push(`<div class="blikvak fles"><span>Flessen</span><b>${t.flessen} keer</b>
-      <small>${t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml per fles` : "geen fles gegeven"}${langst ? ` · langste pauze ${duurTekst(langst.duur)} (${uurMin(langst.van)} tot ${uurMin(langst.tot)})` : ""}</small>${trendTekst("flessen", "keer", null)}</div>`);
+      <small>${t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml per fles` : "geen fles gegeven"}</small>
+      ${p ? `<small>Tussen voedingen gem. ${duurTekst(p.gem)}, kortste ${duurTekst(p.min.duur)}, langste ${duurTekst(p.max.duur)} (${uurMin(p.max.van)} tot ${uurMin(p.max.tot)})</small>` : ""}${trendTekst("flessen", "keer", null)}</div>`);
     // Vitamine K-richtlijn geldt alleen als de baby ook moedermelk krijgt.
     const metMoedermelk = heeft("borst") || heeft("kolven");
     const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
@@ -1292,6 +1313,44 @@ function renderGisteren() {
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
     <div class="blik">${vakken.join("")}</div>`;
+}
+
+// Tijd tussen voedingen: per dag (of week) de gemiddelde pauze als stip, met een streep van de
+// kortste tot de langste pauze.
+function pauzegrafiek(el, reeks, perWeek, kleur) {
+  const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
+  const n = reeks.length;
+  const rijen = reeks.map((x) => ({ x, p: pauzeStats(pauzesIn(x.d, plusDagen(x.d, perWeek ? 7 : 1))) }));
+  const maxUur = Math.max(4, Math.ceil(Math.max(0, ...rijen.filter((r) => r.p).map((r) => r.p.max.duur)) / 36e5));
+  const stap = maxUur <= 6 ? 1 : maxUur <= 12 ? 2 : 3;
+  const top = Math.ceil(maxUur / stap) * stap;
+  const y = (ms) => pt + (H - pt - pb) * (1 - ms / (top * 36e5));
+  const bw = (W - pl - pr) / n;
+  let svg = "";
+  for (let u = 0; u <= top; u += stap) {
+    svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(u * 36e5)}" y2="${y(u * 36e5)}" class="rast"/><text x="${pl - 4}" y="${y(u * 36e5) + 3}" class="as" text-anchor="end">${u} u</text>`;
+  }
+  rijen.forEach(({ x, p }, i) => {
+    const cx = pl + bw * i + bw / 2;
+    if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
+    if (!p) return;
+    const op = x.lopend ? ' opacity=".45"' : "";
+    svg += `<line x1="${cx}" x2="${cx}" y1="${y(p.min.duur)}" y2="${y(p.max.duur)}" stroke="${kleur}" stroke-width="${Math.max(2, Math.min(6, bw * 0.3))}" stroke-linecap="round" opacity="${x.lopend ? 0.15 : 0.3}"/>`;
+    svg += `<circle cx="${cx}" cy="${y(p.gem)}" r="${Math.max(2.5, Math.min(4, bw * 0.25))}" fill="${kleur}"${op}/>`;
+    if (n <= 14) svg += `<text x="${cx}" y="${Math.max(9, y(p.max.duur) - 4)}" class="waardelabel" text-anchor="middle">${uurKort(p.gem)}</text>`;
+  });
+  // Over de hele periode, zonder de lopende dag of week.
+  const alle = rijen.filter((r) => !r.x.lopend).flatMap((r) => pauzesIn(r.x.d, plusDagen(r.x.d, perWeek ? 7 : 1)));
+  const s = pauzeStats(alle);
+  if (s) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(s.gem)}" y2="${y(s.gem)}" class="gemlijn"/>`;
+  const samenvatting = s
+    ? `<p class="pauzesom"><span>gem. <b>${duurTekst(s.gem)}</b></span><span>kortste <b>${duurTekst(s.min.duur)}</b> <small>${dagLabel(s.min.tot).toLowerCase()} ${uurMin(s.min.van)} tot ${uurMin(s.min.tot)}</small></span><span>langste <b>${duurTekst(s.max.duur)}</b> <small>${dagLabel(s.max.tot).toLowerCase()} ${uurMin(s.max.van)} tot ${uurMin(s.max.tot)}</small></span></p>`
+    : `<p class="klein-grijs">Nog te weinig voedingen om pauzes te tonen.</p>`;
+  el.innerHTML = `<div class="grafiekkop"><h2>Tijd tussen voedingen${perWeek ? " (per week)" : ""}</h2></div>
+    ${samenvatting}
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde, kortste en langste tijd tussen voedingen per ${perWeek ? "week" : "dag"}">${svg}</svg>
+    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld (uu:mm)</span><span><i style="background:${kleur};opacity:.3"></i>kortste tot langste</span><span><i class="streep"></i>gemiddelde periode</span></div>
+    <p class="klein-grijs pauzeuitleg">Borst en fles binnen 45 minuten tellen als één voeding. Pauzes langer dan 12 uur tellen niet mee (waarschijnlijk vergeten te registreren).</p>`;
 }
 
 // Dagritme: per dag een tijdlijn van 0 tot 24 uur met de voedingen (stippen) en luiers (streepjes).
@@ -1410,6 +1469,9 @@ function renderOverzicht() {
     titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["natAlleen", "poep", "droog"],
     kleuren: [kleur("--luier"), kleur("--poep"), kleur("--luier-licht")], legenda: ["nat", "poep (of beide)", "droog"],
   });
+  const pauze = $("#g-pauze");
+  pauze.hidden = !MODI.some(modusAan);
+  if (!pauze.hidden) pauzegrafiek(pauze, reeks, perWeek, kleur("--kunst"));
   const ritme = $("#g-ritme");
   ritme.hidden = !MODI.some(modusAan) && !heeft("luiers");
   if (!ritme.hidden) ritmegrafiek(ritme, periode === 7 ? 7 : 14);
