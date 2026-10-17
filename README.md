@@ -2,6 +2,10 @@
 
 Eenvoudige app om bij te houden wat de baby krijgt, voor twee ouders op twee telefoons.
 
+## Onderdelen aan en uit
+
+In **Instellingen** zet je per telefoon aan wat jullie bijhouden: **Fles (kunstvoeding)**, **Luiers**, **Borstvoeding** en **Kolven en moedermelk in de fles**. Wat uit staat, verdwijnt uit het registreren en uit het overzicht. Eerdere registraties blijven bewaard en staan gewoon in de geschiedenis. Een nieuw gezin begint met alles aan.
+
 ## Registreren
 
 Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd onderin beeld.
@@ -9,6 +13,9 @@ Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd ond
 - **Borst:** tik op **Start** bij links of rechts. De timer loopt door als het scherm vergrendelt of de app sluit, en blijft dezelfde sessie. Tik op de andere kant om te wisselen. Je kunt de minuten ook intypen of bijstellen, ook terwijl de timer loopt. **Geëindigd met** springt mee met de timer en is ook los aan te tikken.
 - **Fles:** kunstvoeding en/of moedermelk in ml, met snelkeuzes of min en plus. Een fles laat een lopende borsttimer met rust.
 - **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
+- **Luier:** één tik op **Nat**, **Poep**, **Beide** of **Droog**. Ernaast staat wanneer de laatste luier was.
+
+Bovenaan staat hoe lang de laatste voeding geleden is en hoe vaak er de afgelopen 24 uur gevoed is, met de gemiddelde tijd ertussen. Onder **Vandaag** staan de tijden van elke voeding en luier. Borst en fles binnen 45 minuten tellen samen als één voeding.
 
 De lopende timers zijn gedeeld: start Aisha links, dan ziet Jaimy hem ook lopen. Bovenaan staat dan "Nu bezig". Per ongeluk gestart? Tik op **Wissen**. Na opslaan kun je 6 seconden **Ongedaan maken**.
 
@@ -16,9 +23,10 @@ De app helpt tegen vergissingen: een vraag bij een timer die al uren loopt, bij 
 
 ## Overzicht
 
-- **Gisteren in één blik:** kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
-- **Grafieken** over 7, 14 of 30 dagen of 12 weken: borstvoeding, kunstvoeding (met de 500 ml-lijn), kolfopbrengst en kunstvoeding plus gekolfd samen.
-- **Tabellen per dag of week:** melk (kunstvoeding, gekolfd L/R/totaal, samen) en borstvoeding (L/R/totaal/keer), met totaal en gemiddelde. Tik op een dag om de registraties te zien.
+- **Gisteren in één blik:** aantal flessen met de gemiddelde hoeveelheid en de langste pauze, luiers (nat, poep, droog), kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
+- **Grafieken** over 7, 14 of 30 dagen of 12 weken: kunstvoeding (met de 500 ml-lijn als de baby ook moedermelk krijgt), aantal flessen, luiers, kolfopbrengst, kunstvoeding plus gekolfd samen en borstvoeding.
+- **Dagritme:** per dag een tijdlijn van 0 tot 24 uur met elke voeding en luier, zodat je ziet wanneer de baby drinkt en of er een vast ritme in komt.
+- **Tabellen per dag of week:** melk (aantal flessen, kunstvoeding, gekolfd L/R/totaal, samen), luiers en borstvoeding (L/R/totaal/keer), met totaal en gemiddelde. Tik op een dag om de registraties te zien.
 
 De app toont alleen cijfers. Overleg over vitamine K met het consultatiebureau.
 

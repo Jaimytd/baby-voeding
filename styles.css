@@ -22,6 +22,9 @@
   --ok: #16a34a;
   --wacht: #d97706;
   --gevaar: #dc2626;
+  --luier: #0d9488;
+  --luier-licht: #99f6e4;
+  --poep: #a16207;
   --radius: 16px;
   color-scheme: light dark;
 }
@@ -47,6 +50,9 @@
     --fles-bg: #4a3710;
     --goed: #4ade80;
     --let: #fbbf24;
+    --luier: #2dd4bf;
+    --luier-licht: #115e59;
+    --poep: #d6a35c;
   }
 }
 
@@ -511,13 +517,49 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 
 /* luiers */
 .blok.luiers { border-color: var(--zacht); }
-.luierknoppen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.luierknoppen .pil { min-height: 36px; padding: 4px 0; font-size: 14px; font-weight: 600; color: var(--zacht); }
+.luierkop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.luierkop h2 { margin-bottom: 8px; }
+.luierknoppen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.luierknoppen .pil { min-height: 48px; padding: 4px 0; font-size: 16px; font-weight: 600; }
 .luierknoppen .pil:active { background: var(--veld); }
-.iregel.luier .ikop { font-size: 14px; color: var(--zacht); }
-.iregel.luier .ikop i { background: var(--lijn); }
-.iregel.luier .ikop b { font-weight: 600; }
+
+/* onderdelen aan/uit: data-deel="borst" verdwijnt als borstvoeding uit staat */
+body.zonder-fles [data-deel~="fles"],
+body.zonder-kolven [data-deel~="kolven"],
+body.zonder-borst [data-deel~="borst"],
+body.zonder-luiers [data-deel~="luiers"] { display: none !important; }
+.onderdelen { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 4px; min-width: 0; }
+.onderdelen legend { font-weight: 700; font-size: 16px; padding: 0; margin-bottom: 4px; color: var(--tekst); }
+.schakel { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 16px; }
+.schakel input {
+  appearance: none; -webkit-appearance: none; flex: none; margin: 0;
+  width: 46px; height: 28px; border-radius: 999px; background: var(--lijn); position: relative; transition: background .15s;
+}
+.schakel input::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s;
+}
+.schakel input:checked { background: var(--primair); }
+.schakel input:checked::after { transform: translateX(18px); }
+.schakel input:focus-visible { outline: 2px solid var(--primair); outline-offset: 2px; }
+
+/* tijden van vandaag */
+.tijden { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 2px; }
+.tijden span { font-size: 13px; background: var(--veld); border-radius: 999px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+.tijden span b { font-weight: 700; }
+.blikvak.luiers b { color: var(--luier); }
+.blikvak.fles b { color: var(--kunst); }
+
+/* dagritme */
+.grafiek .uurlijn { stroke: var(--lijn); stroke-width: 1; }
+.grafiek .nacht { fill: var(--veld); }
+.grafiek .rijlabel { font-size: 9px; fill: var(--zacht); }
+.grafiek .rijlabel.nu { font-weight: 700; fill: var(--tekst); }
+.legenda i.rond { border-radius: 50%; }
+.legenda i.streepje { width: 3px; height: 10px; border-radius: 1px; }
+.iregel.luier .ikop i { background: var(--luier); }
 .b-luier { display: grid; gap: 10px; }
 .b-luier[hidden] { display: none; }
 .veld.check { display: flex; align-items: center; gap: 10px; color: var(--tekst); font-size: 16px; }
 .veld.check input { width: 22px; height: 22px; }
+.tweeveld:has(> [hidden]) { grid-template-columns: minmax(0, 1fr); }

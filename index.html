@@ -35,7 +35,8 @@
         <div class="label">Laatste voeding</div>
         <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
         <div id="laatste-detail" class="detail"></div>
-        <div id="laatste-kant" class="kantpil" hidden></div>
+        <div id="laatste-ritme" class="detail"></div>
+        <div id="laatste-kant" class="kantpil" data-deel="borst" hidden></div>
         <div id="bezig" class="bezig" hidden></div>
       </section>
 
@@ -43,8 +44,8 @@
 
       <div class="modus segment" role="tablist" aria-label="Wat registreer je?">
         <button type="button" role="tab" data-modus="fles" aria-selected="false">Fles</button>
-        <button type="button" role="tab" data-modus="kolven" aria-selected="false">Kolven</button>
-        <button type="button" role="tab" data-modus="borst" class="aan" aria-selected="true">Borst</button>
+        <button type="button" role="tab" data-modus="kolven" data-deel="kolven" aria-selected="false">Kolven</button>
+        <button type="button" role="tab" data-modus="borst" data-deel="borst" class="aan" aria-selected="true">Borst</button>
       </div>
 
       <form id="invoer" class="kaart invoer" autocomplete="off" novalidate data-modus="voeding">
@@ -82,7 +83,7 @@
         </div>
 
         <div class="deel-fles" hidden>
-        <div class="soort" data-soort="kolf">
+        <div class="soort" data-soort="kolf" data-deel="kolven">
           <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)<span id="voorraad-kop" class="hint"></span></div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
@@ -93,7 +94,7 @@
           <div id="voorraad" class="voorraad" hidden></div>
         </div>
 
-        <div class="soort" data-soort="kunst">
+        <div class="soort" data-soort="kunst" data-deel="fles">
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
             <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
@@ -184,6 +185,16 @@
         <div class="opslaanbalk"><button type="submit" class="primair opslaan" disabled>Kolven opslaan <span id="kolftotaal"></span></button></div>
       </form>
 
+      <section class="kaart luierkaart" id="luierkaart" data-deel="luiers">
+        <div class="luierkop"><h2>Luier</h2><span id="laatste-luier" class="klein-grijs"></span></div>
+        <div class="luierknoppen">
+          <button type="button" class="pil" data-luier="nat">Nat</button>
+          <button type="button" class="pil" data-luier="poep">Poep</button>
+          <button type="button" class="pil" data-luier="beide">Beide</button>
+          <button type="button" class="pil" data-luier="droog">Droog</button>
+        </div>
+      </section>
+
       <section class="kaart">
         <h2>Vandaag</h2>
         <div id="totalen-vandaag"></div>
@@ -205,18 +216,26 @@
         <button type="button" data-dagen="w">12 weken</button>
       </div>
 
-      <section class="kaart grafiek" id="g-kunst"></section>
-      <section class="kaart grafiek" id="g-kolf"></section>
-      <section class="kaart grafiek" id="g-samen"></section>
-      <section class="kaart grafiek" id="g-borst"></section>
+      <section class="kaart grafiek" id="g-kunst" data-deel="fles"></section>
+      <section class="kaart grafiek" id="g-flessen" data-deel="fles"></section>
+      <section class="kaart grafiek" id="g-ritme"></section>
+      <section class="kaart grafiek" id="g-luiers" data-deel="luiers"></section>
+      <section class="kaart grafiek" id="g-kolf" data-deel="kolven"></section>
+      <section class="kaart grafiek" id="g-samen" data-deel="kolven fles"></section>
+      <section class="kaart grafiek" id="g-borst" data-deel="borst"></section>
 
-      <section class="kaart">
+      <section class="kaart" id="melksectie">
         <h2 id="tabeltitel">Melk per dag (ml)</h2>
         <div class="tabelrol"><table class="dagtabel" id="melktabel"></table></div>
         <p class="klein-grijs" id="tabeluitleg"></p>
       </section>
 
-      <section class="kaart">
+      <section class="kaart" data-deel="luiers">
+        <h2 id="luiertitel">Luiers per dag</h2>
+        <div class="tabelrol"><table class="dagtabel" id="luiertabel"></table></div>
+      </section>
+
+      <section class="kaart" data-deel="borst">
         <h2 id="borsttitel">Borstvoeding per dag (min)</h2>
         <div class="tabelrol"><table class="dagtabel" id="borsttabel"></table></div>
       </section>
@@ -334,6 +353,14 @@
         </label>
         <button type="button" id="i-koppel" class="primair klein breed">Koppelen</button>
       </div>
+      <fieldset class="onderdelen">
+        <legend>Wat houden jullie bij?</legend>
+        <label class="schakel"><span>Fles (kunstvoeding)</span><input type="checkbox" role="switch" data-aan="fles"></label>
+        <label class="schakel"><span>Luiers</span><input type="checkbox" role="switch" data-aan="luiers"></label>
+        <label class="schakel"><span>Borstvoeding</span><input type="checkbox" role="switch" data-aan="borst"></label>
+        <label class="schakel"><span>Kolven en moedermelk in de fles</span><input type="checkbox" role="switch" data-aan="kolven"></label>
+        <p class="klein-grijs">Geldt voor deze telefoon. Uitzetten verbergt een onderdeel; wat al geregistreerd is, blijft bewaard en staat gewoon in de geschiedenis.</p>
+      </fieldset>
       <p class="klein-grijs" id="i-status"></p>
       <p class="klein-grijs" id="i-versie"></p>
       <div class="knoppen">

@@ -3,10 +3,10 @@ import { maakStore, isGedeeld, isKapot } from "./store.js";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
-const PRESETS = { kolf: [30, 60, 90, 120], kunst: [30, 60, 90, 120], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
+const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "26";
+const APP_VERSIE = "27";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -140,12 +140,14 @@ function regels(v) {
 }
 
 function totalen(lijst) {
-  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0, samen: 0, aantal: 0, luiers: 0, nat: 0, poep: 0 };
+  const t = { L: 0, R: 0, fles: 0, kunst: 0, kolfL: 0, kolfR: 0, kolfDuur: 0, voedingen: 0, kolfsessies: 0, borstKeer: 0, flessen: 0, samen: 0, aantal: 0, luiers: 0, nat: 0, poep: 0, natAlleen: 0, droog: 0 };
   for (const v of lijst) {
     if (isLuier(v)) {
       t.luiers++;
       if (v.nat) t.nat++;
       if (v.poep) t.poep++;
+      if (v.nat && !v.poep) t.natAlleen++;
+      if (!v.nat && !v.poep) t.droog++;
       continue;
     }
     t.aantal++;
@@ -160,6 +162,7 @@ function totalen(lijst) {
       if (getal(v.borstL) || getal(v.borstR)) t.borstKeer++;
       t.fles += getal(v.kolf);
       t.kunst += getal(v.kunst);
+      if (getal(v.kolf) || getal(v.kunst)) t.flessen++;
       t.voedingen++;
     }
   }
@@ -167,6 +170,23 @@ function totalen(lijst) {
   t.kolf = t.kolfL + t.kolfR;
   t.samen = t.kunst + t.kolf;
   return t;
+}
+
+// Voedmomenten: borst en fles vlak na elkaar (binnen 45 minuten) zijn samen één voeding.
+function voedmomenten(lijst) {
+  const momenten = [];
+  for (const v of lijst.filter((x) => !isKolven(x) && !isLuier(x)).sort((a, b) => a.tijd - b.tijd)) {
+    const vorig = momenten[momenten.length - 1];
+    if (vorig && v.tijd - vorig.tijd <= 45 * 60000) vorig.items.push(v);
+    else momenten.push({ tijd: v.tijd, items: [v] });
+  }
+  return momenten;
+}
+const tussenpozen = (momenten) => momenten.slice(1).map((m, i) => ({ van: momenten[i].tijd, tot: m.tijd, duur: m.tijd - momenten[i].tijd }));
+function duurTekst(ms) {
+  const min = Math.round(ms / 60000);
+  const u = Math.floor(min / 60);
+  return u ? `${u} u ${pad(min % 60)}` : `${min} min`;
 }
 
 // ---------- registraties opslaan (ook als de database nog laadt) ----------
@@ -383,6 +403,15 @@ let naam = ls.get("naam", "");
 let gezin = ls.get("gezin", "");
 let periode = ls.get("periode", 14);
 
+// ---------- onderdelen aan/uit (per telefoon) ----------
+// Wat je niet bijhoudt, verdwijnt uit beeld; eerdere registraties blijven gewoon bestaan.
+const ONDERDELEN = ["fles", "luiers", "borst", "kolven"];
+let aanUit = { ...Object.fromEntries(ONDERDELEN.map((o) => [o, true])), ...ls.get("onderdelen", {}) };
+const heeft = (o) => aanUit[o] !== false;
+// De fles is er voor kunstvoeding en voor gekolfde moedermelk.
+const modusAan = (m) => (m === "fles" ? heeft("fles") || heeft("kolven") : heeft(m));
+const MODI = ["fles", "kolven", "borst"];
+
 // ---------- tabbladen en modus ----------
 function toonTab(tab) {
   for (const b of $$(".tabbar button")) b.classList.toggle("aan", b.dataset.tab === tab);
@@ -396,14 +425,16 @@ for (const b of $$(".tabbar button")) b.addEventListener("click", () => toonTab(
 // Drie modi: borst en fles delen één formulier, kolven heeft een eigen formulier.
 let modus = ["borst", "fles", "kolven"].includes(ls.get("modus")) ? ls.get("modus") : "borst";
 function toonModus(m) {
+  if (!modusAan(m)) m = MODI.find(modusAan) || m;
+  const geen = !MODI.some(modusAan);
   modus = m;
   ls.set("modus", m);
   for (const b of $$(".modus button")) {
     b.classList.toggle("aan", b.dataset.modus === m);
     b.setAttribute("aria-selected", b.dataset.modus === m);
   }
-  $("#invoer").hidden = m === "kolven";
-  $("#kolfinvoer").hidden = m !== "kolven";
+  $("#invoer").hidden = geen || m === "kolven";
+  $("#kolfinvoer").hidden = geen || m !== "kolven";
   $(".deel-borst").hidden = m !== "borst";
   $(".deel-fles").hidden = m !== "fles";
   $("#invoer .opslaan").textContent = m === "fles" ? "Fles opslaan" : "Borstvoeding opslaan";
@@ -413,6 +444,15 @@ function toonModus(m) {
   werkTimersBij();
 }
 for (const b of $$(".modus button")) b.addEventListener("click", () => toonModus(b.dataset.modus));
+
+function pasOnderdelenToe() {
+  for (const o of ONDERDELEN) document.body.classList.toggle("zonder-" + o, !heeft(o));
+  for (const b of $$(".modus button")) b.hidden = !modusAan(b.dataset.modus);
+  $(".modus").hidden = MODI.filter(modusAan).length < 2;
+  $("#melksectie").hidden = !modusAan("fles");
+  $(".laatste .label").textContent = MODI.some(modusAan) ? "Laatste voeding" : "Laatste luier";
+  toonModus(modus);
+}
 
 // ---------- timers (gedeeld tussen de telefoons) ----------
 // Alles is gebaseerd op tijdstempels, dus de timer loopt door als het scherm vergrendelt
@@ -635,7 +675,7 @@ function werkTimersBij() {
 
   // Melding als er een timer loopt in de modus die je nu niet ziet.
   const banner = $("#loopt");
-  const andere = modus !== "kolven" && kolfLoopt() ? "kolven" : modus !== "borst" && borstLoopt() ? "borst" : null;
+  const andere = modus !== "kolven" && kolfLoopt() && heeft("kolven") ? "kolven" : modus !== "borst" && borstLoopt() && heeft("borst") ? "borst" : null;
   banner.hidden = !andere;
   if (andere) {
     const k = andere === "kolven" ? lopendeKolf() : loopt("L") ? "L" : "R";
@@ -1005,7 +1045,7 @@ $("#kolfinvoer").addEventListener("submit", async (e) => {
 
 // ---------- luiers ----------
 // Eén tik: luier opgeslagen met de huidige tijd, met ongedaan maken.
-$("#totalen-vandaag").addEventListener("click", (e) => {
+$("#luierkaart").addEventListener("click", (e) => {
   const knop = e.target.closest("[data-luier]");
   if (!knop) return;
   const soort = knop.dataset.luier;
@@ -1018,7 +1058,23 @@ $("#totalen-vandaag").addEventListener("click", (e) => {
 // ---------- weergave: registreren ----------
 function renderLaatste() {
   const alleenVoeding = voedingen.filter((v) => !isKolven(v) && !isLuier(v));
+  const luiers = voedingen.filter(isLuier);
+  const ll = luiers[0];
   const laatste = alleenVoeding[0];
+  $("#laatste-luier").textContent = ll ? `laatste ${uurMin(ll.tijd)}, ${luierTekst(ll)} · ${geledenTekst(ll.tijd).toLowerCase()}` : "";
+  // Hoe vaak: gemiddelde tijd tussen de voedingen van de afgelopen 24 uur.
+  const pozen = tussenpozen(voedmomenten(alleenVoeding.filter((v) => v.tijd >= Date.now() - DAG)));
+  $("#laatste-ritme").textContent = pozen.length
+    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(pozen.reduce((s, p) => s + p.duur, 0) / pozen.length)}`
+    : "";
+  if (!MODI.some(modusAan)) {
+    // Alleen luiers bijhouden: bovenaan de laatste luier.
+    $("#laatste-sinds").textContent = ll ? geledenTekst(ll.tijd) : "Nog niets geregistreerd";
+    $("#laatste-detail").textContent = ll ? `om ${uurMin(ll.tijd)} · ${luierTekst(ll)}` : "";
+    $("#laatste-ritme").textContent = "";
+    $("#laatste-kant").hidden = true;
+    return;
+  }
   if (!laatste) {
     $("#laatste-sinds").textContent = "Nog niets geregistreerd";
     $("#laatste-detail").textContent = "";
@@ -1034,35 +1090,41 @@ function renderLaatste() {
   if (metKant) pil.innerHTML = `Vorige keer geëindigd met: <b>${kantNaam(metKant.eindKant)}</b> <span>(${uurMin(metKant.tijd)})</span>`;
 }
 
-// Vandaag in drie vragen: wat is gevoed, wat is gekolfd, wat is er nog over.
-function dagBlok(t) {
+// Vandaag in een paar vragen: wat is gevoed en wanneer, wat is gekolfd, wat is er over, welke luiers.
+// Onderdelen die uit staan, blijven weg.
+function dagBlok(t, lijst) {
   const regel = (hoofd, wat, detail) => `<div class="bregel"><b>${hoofd}</b><span class="bwat">${wat}</span>${detail ? `<span class="bdetail">${detail}</span>` : ""}</div>`;
   const flesMl = t.kunst + t.fles;
+  const momenten = voedmomenten(lijst);
+  const pozen = tussenpozen(momenten);
+  const elke = pozen.length > 1 ? ` · gem. elke ${duurTekst(pozen.reduce((s, p) => s + p.duur, 0) / pozen.length)}` : "";
+  // Wanneer: elk voedmoment als tijd, met de ml uit de fles.
+  const tijden = momenten.length
+    ? `<div class="tijden">${momenten.map((m) => {
+        const ml = m.items.reduce((s, v) => s + getal(v.kunst) + getal(v.kolf), 0);
+        return `<span>${uurMin(m.tijd)}${ml ? ` · <b>${ml}</b>` : ""}</span>`;
+      }).join("")}</div>`
+    : "";
   const gevoed = [
-    flesMl && regel(`${flesMl} ml`, "fles", [t.kunst && `${t.kunst} kunstvoeding`, t.fles && `${t.fles} moedermelk`].filter(Boolean).join(" + ")),
+    flesMl && regel(`${flesMl} ml`, "fles", heeft("kolven") ? [t.kunst && `${t.kunst} kunstvoeding`, t.fles && `${t.fles} moedermelk`].filter(Boolean).join(" + ") : ""),
     t.borst && regel(`${t.borst} min`, "borst", `L ${t.L} · R ${t.R}`),
   ].filter(Boolean).join("") || `<div class="bleeg">Nog niets gevoed</div>`;
   const gekolfd = t.kolf
     ? regel(`${t.kolf} ml`, "", `L ${t.kolfL} · R ${t.kolfR} · ${t.kolfsessies} keer`)
     : `<div class="bleeg">Nog niet gekolfd</div>`;
-  const over = voorraad().reduce((s, p) => s + p.rest, 0);
+  const over = heeft("kolven") ? voorraad().reduce((s, p) => s + p.rest, 0) : 0;
   return `
-    <div class="blok gevoed"><div class="bkop">Gevoed${t.voedingen ? `<span>${t.voedingen} keer</span>` : ""}</div>${gevoed}</div>
-    <div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>
-    ${over || t.kolf ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}
-    <div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · ${t.poep} poep` : "nog geen"}</span></div>
-      <div class="luierknoppen">
-        <button type="button" class="pil" data-luier="nat">Nat</button>
-        <button type="button" class="pil" data-luier="poep">Poep</button>
-        <button type="button" class="pil" data-luier="beide">Beide</button>
-        <button type="button" class="pil" data-luier="droog">Droog</button>
-      </div>
-    </div>`;
+    ${MODI.some(modusAan) ? `<div class="blok gevoed"><div class="bkop">Gevoed${momenten.length ? `<span>${momenten.length} keer${elke}</span>` : ""}</div>${gevoed}${tijden}</div>` : ""}
+    ${heeft("kolven") ? `<div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>` : ""}
+    ${over || (heeft("kolven") && t.kolf) ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}
+    ${heeft("luiers") ? `<div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · ${t.poep} poep` : "nog geen"}</span></div>${
+      t.luiers ? `<div class="tijden">${lijst.filter(isLuier).sort((x, y) => x.tijd - y.tijd).map((v) => `<span>${uurMin(v.tijd)} · ${luierTekst(v)}</span>`).join("")}</div>` : ""}</div>` : ""}`;
 }
 
 function renderLijst() {
   const vandaag = dagStart(Date.now());
-  $("#totalen-vandaag").innerHTML = dagBlok(totalen(voedingen.filter((v) => dagStart(v.tijd) === vandaag)));
+  const vandaagLijst = voedingen.filter((v) => dagStart(v.tijd) === vandaag);
+  $("#totalen-vandaag").innerHTML = dagBlok(totalen(vandaagLijst), vandaagLijst);
 
   const perDag = new Map();
   for (const v of voedingen) {
@@ -1124,7 +1186,8 @@ function dagreeks(n) {
       d,
       t: totalen(perDag.get(d) || []),
       // Alleen dagen met registraties tellen mee in gemiddelden en trends.
-      actief: (perDag.get(d) || []).some((v) => !isLuier(v)),
+      // Wie alleen luiers bijhoudt: dan tellen de dagen met luiers.
+      actief: (perDag.get(d) || []).some((v) => !isLuier(v) || !MODI.some(modusAan)),
       binnen: d >= eerste,
       lopend: d === vandaag,
       as: n <= 7 ? dt.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2) : String(dt.getDate()),
@@ -1191,25 +1254,96 @@ function trendTekst(sleutel, eenheid, goedAls) {
 
 function renderGisteren() {
   const gist = plusDagen(dagStart(Date.now()), -1);
-  const t = totalen(voedingen.filter((v) => dagStart(v.tijd) === gist));
+  const lijst = voedingen.filter((v) => dagStart(v.tijd) === gist);
+  const t = totalen(lijst);
   const datum = new Date(gist).toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
-  if (!t.aantal) {
+  if (!t.aantal && !(heeft("luiers") && t.luiers)) {
     $("#gisteren").innerHTML = `<h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
-      <p class="leeg">Gisteren is niets geregistreerd. Deze dag telt niet mee in gemiddelden, trends en de vitamine K-telling.</p>`;
+      <p class="leeg">Gisteren is niets geregistreerd. Deze dag telt niet mee in gemiddelden en trends.</p>`;
     return;
   }
-  const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
-  const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
-  const vitk = (t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`) +
-    (week.length ? `; ${onder} van de laatste ${week.length} dagen onder ${VITK_ML} ml` : "");
+  const vakken = [];
+  if (heeft("fles")) {
+    // Langste pauze: ook de pauze vanaf de laatste voeding van eergisteren telt mee.
+    const momenten = voedmomenten(voedingen.filter((v) => v.tijd >= plusDagen(gist, -1) && v.tijd < plusDagen(gist, 1)));
+    const langst = tussenpozen(momenten).filter((p) => p.tot >= gist).sort((x, y) => y.duur - x.duur)[0];
+    const flesMl = t.kunst + t.fles;
+    vakken.push(`<div class="blikvak fles"><span>Flessen</span><b>${t.flessen} keer</b>
+      <small>${t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml per fles` : "geen fles gegeven"}${langst ? ` · langste pauze ${duurTekst(langst.duur)} (${uurMin(langst.van)} tot ${uurMin(langst.tot)})` : ""}</small>${trendTekst("flessen", "keer", null)}</div>`);
+    // Vitamine K-richtlijn geldt alleen als de baby ook moedermelk krijgt.
+    const metMoedermelk = heeft("borst") || heeft("kolven");
+    const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
+    const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
+    const vitk = metMoedermelk
+      ? `<small>${t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`}${week.length ? `; ${onder} van de laatste ${week.length} dagen onder ${VITK_ML} ml` : ""} (vitamine K)</small>`
+      : "";
+    vakken.push(`<div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b>${vitk}${trendTekst("kunst", "ml", null)}</div>`);
+  }
+  if (heeft("luiers")) {
+    vakken.push(`<div class="blikvak luiers"><span>Luiers</span><b>${t.luiers}</b><small>${t.nat} nat · ${t.poep} poep${t.droog ? ` · ${t.droog} droog` : ""}</small></div>`);
+  }
+  if (heeft("kolven")) {
+    vakken.push(`<div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>`);
+    if (heeft("fles")) vakken.push(`<div class="blikvak samen"><span>Kunstvoeding + gekolfd samen</span><b>${t.samen} ml</b></div>`);
+  }
+  if (heeft("borst")) {
+    vakken.push(`<div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>`);
+  }
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
-    <div class="blik">
-      <div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b><small>${vitk} (vitamine K)</small>${trendTekst("kunst", "ml", null)}</div>
-      <div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>
-      <div class="blikvak samen"><span>Kunstvoeding + gekolfd samen</span><b>${t.samen} ml</b></div>
-      <div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>
-    </div>`;
+    <div class="blik">${vakken.join("")}</div>`;
+}
+
+// Dagritme: per dag een tijdlijn van 0 tot 24 uur met de voedingen (stippen) en luiers (streepjes).
+// Zo zie je in één oogopslag wanneer de baby drinkt en of er een vast ritme in komt.
+function ritmegrafiek(el, n) {
+  const kleur = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const W = 340, pl = 38, pr = 6, pt = 4, rij = 22, pb = 16;
+  const H = pt + rij * n + pb;
+  const x = (t, d) => pl + ((t - d) / DAG) * (W - pl - pr);
+  const vandaag = dagStart(Date.now());
+  let svg = "";
+  // Nacht (22 tot 7 uur) licht gekleurd.
+  const uurX = (u) => pl + (u / 24) * (W - pl - pr);
+  svg += `<rect x="${uurX(0)}" y="${pt}" width="${uurX(7) - uurX(0)}" height="${rij * n}" class="nacht"/>`;
+  svg += `<rect x="${uurX(22)}" y="${pt}" width="${uurX(24) - uurX(22)}" height="${rij * n}" class="nacht"/>`;
+  for (let u = 0; u <= 24; u += 3) {
+    svg += `<line x1="${uurX(u)}" x2="${uurX(u)}" y1="${pt}" y2="${pt + rij * n}" class="uurlijn"/>`;
+    if (u % 6 === 0) svg += `<text x="${uurX(u)}" y="${H - 4}" class="as" text-anchor="middle">${u}</text>`;
+  }
+  const metFles = heeft("fles") || heeft("kolven");
+  for (let i = 0; i < n; i++) {
+    const d = plusDagen(vandaag, -i);
+    const y = pt + rij * i + rij / 2;
+    const dt = new Date(d);
+    const label = i === 0 ? "nu" : dt.toLocaleDateString("nl-NL", { weekday: "short" }).slice(0, 2) + " " + dt.getDate();
+    svg += `<text x="${pl - 4}" y="${y + 3}" class="rijlabel${i === 0 ? " nu" : ""}" text-anchor="end">${label}</text>`;
+    svg += `<line x1="${pl}" x2="${W - pr}" y1="${pt + rij * (i + 1)}" y2="${pt + rij * (i + 1)}" class="uurlijn"/>`;
+    for (const v of voedingen) {
+      if (dagStart(v.tijd) !== d) continue;
+      const cx = x(v.tijd, d);
+      if (isLuier(v)) {
+        if (!heeft("luiers")) continue;
+        svg += `<rect x="${cx - 1.25}" y="${y + 2}" width="2.5" height="7" rx="1" fill="${kleur(v.poep ? "--poep" : "--luier")}" ${!v.nat && !v.poep ? 'opacity=".45"' : ""}/>`;
+      } else if (isKolven(v)) {
+        if (heeft("kolven")) svg += `<circle cx="${cx}" cy="${y - 3}" r="3" fill="none" stroke="${kleur("--kolf")}" stroke-width="1.5"/>`;
+      } else {
+        const fles = getal(v.kunst) || getal(v.kolf);
+        if (fles && metFles) svg += `<circle cx="${cx}" cy="${y - 3}" r="3.6" fill="${kleur("--kunst")}"/>`;
+        else if (!fles && heeft("borst")) svg += `<circle cx="${cx}" cy="${y - 3}" r="3.6" fill="${kleur("--borst")}"/>`;
+      }
+    }
+  }
+  const leg = [
+    metFles && `<span><i class="rond" style="background:${kleur("--kunst")}"></i>fles</span>`,
+    heeft("borst") && `<span><i class="rond" style="background:${kleur("--borst")}"></i>borst</span>`,
+    heeft("kolven") && `<span><i class="rond" style="border:1.5px solid ${kleur("--kolf")};background:none"></i>kolven</span>`,
+    heeft("luiers") && `<span><i class="streepje" style="background:${kleur("--luier")}"></i>luier nat</span><span><i class="streepje" style="background:${kleur("--poep")}"></i>luier poep</span><span><i class="streepje" style="background:${kleur("--luier")};opacity:.45"></i>droog</span>`,
+    `<span><i style="background:var(--veld)"></i>nacht (22 tot 7)</span>`,
+  ].filter(Boolean).join("");
+  el.innerHTML = `<div class="grafiekkop"><h2>Dagritme</h2><span class="klein-grijs">laatste ${n} dagen</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tijdstippen van voedingen en luiers per dag">${svg}</svg>
+    <div class="legenda">${leg}</div>`;
 }
 
 function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn }) {
@@ -1269,8 +1403,16 @@ function renderOverzicht() {
   staafgrafiek($("#g-borst"), { titel: "Borstvoeding" + per, eenheid: "min", reeks, delen: ["L", "R"], kleuren: [kleur("--borst"), kleur("--borst-licht")], legenda: ["links", "rechts"] });
   staafgrafiek($("#g-kunst"), {
     titel: "Kunstvoeding" + per, eenheid: "ml", reeks, delen: ["kunst"], kleuren: [kleur("--kunst")], legenda: ["kunstvoeding"],
-    lijn: { waarde: VITK_ML, uitleg: `${VITK_ML} ml (vitamine K-richtlijn)` },
+    ...(heeft("borst") || heeft("kolven") ? { lijn: { waarde: VITK_ML, uitleg: `${VITK_ML} ml (vitamine K-richtlijn)` } } : {}),
   });
+  staafgrafiek($("#g-flessen"), { titel: "Flessen" + per, eenheid: "keer", reeks, delen: ["flessen"], kleuren: [kleur("--kunst")], legenda: ["aantal flessen"] });
+  staafgrafiek($("#g-luiers"), {
+    titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["natAlleen", "poep", "droog"],
+    kleuren: [kleur("--luier"), kleur("--poep"), kleur("--luier-licht")], legenda: ["nat", "poep (of beide)", "droog"],
+  });
+  const ritme = $("#g-ritme");
+  ritme.hidden = !MODI.some(modusAan) && !heeft("luiers");
+  if (!ritme.hidden) ritmegrafiek(ritme, periode === 7 ? 7 : 14);
   staafgrafiek($("#g-samen"), { titel: "Kunstvoeding en gekolfd samen" + per, eenheid: "ml", reeks, delen: ["kunst", "kolf"], kleuren: [kleur("--kunst"), kleur("--kolf")], legenda: ["kunstvoeding", "gekolfd"] });
   staafgrafiek($("#g-kolf"), { titel: "Kolfopbrengst" + per, eenheid: "ml", reeks, delen: ["kolfL", "kolfR"], kleuren: [kleur("--kolf"), kleur("--kolf-licht")], legenda: ["links", "rechts"] });
 
@@ -1279,7 +1421,7 @@ function renderOverzicht() {
   const volle = rijen.filter((x) => x.actief && !x.lopend);
   const gem = (k) => (volle.length ? Math.round(volle.reduce((s, x) => s + x.t[k], 0) / volle.length) : 0);
   // Moedermelk uit de fles alleen tonen als die in deze periode gegeven is.
-  const metFles = som("fles") > 0;
+  const metFles = heeft("kolven") && som("fles") > 0;
   const tabel = (el, groepen) => {
     const kol = groepen.flatMap((g) => g.kol);
     const cel = (x) => kol.map((k) => `<td class="${k.nadruk ? "sub" : ""}${k.sleutel === "samen" ? " samen" : ""}">${x[k.sleutel] || "·"}</td>`).join("");
@@ -1297,21 +1439,25 @@ function renderOverzicht() {
   const k = (sleutel, kop, nadruk = false) => ({ sleutel, kop, nadruk });
   $("#tabeltitel").textContent = perWeek ? "Melk per week (gem. per dag)" : "Melk per dag (ml)";
   tabel($("#melktabel"), [
-    { titel: "Fles", klasse: "kunst", kol: [k("kunst", "kunst"), ...(metFles ? [k("fles", "mm")] : [])] },
-    { titel: "Gekolfd", klasse: "kolf", kol: [k("kolfL", "L"), k("kolfR", "R"), k("kolf", "tot", true)] },
-    { titel: "Samen", klasse: "samen", kol: [k("samen", "k+k", true)] },
+    ...(heeft("fles") || metFles ? [{ titel: "Fles", klasse: "kunst", kol: [k("flessen", "keer"), ...(heeft("fles") ? [k("kunst", "kunst")] : []), ...(metFles ? [k("fles", "mm")] : [])] }] : []),
+    ...(heeft("kolven") ? [{ titel: "Gekolfd", klasse: "kolf", kol: [k("kolfL", "L"), k("kolfR", "R"), k("kolf", "tot", true)] }] : []),
+    ...(heeft("kolven") && heeft("fles") ? [{ titel: "Samen", klasse: "samen", kol: [k("samen", "k+k", true)] }] : []),
+  ]);
+  $("#luiertitel").textContent = perWeek ? "Luiers per week (gem. per dag)" : "Luiers per dag";
+  tabel($("#luiertabel"), [
+    { titel: "Luiers", klasse: "luier", kol: [k("luiers", "tot", true), k("nat", "nat"), k("poep", "poep"), k("droog", "droog")] },
   ]);
   $("#borsttitel").textContent = perWeek ? "Borstvoeding per week (gem. per dag)" : "Borstvoeding per dag (min)";
   tabel($("#borsttabel"), [
     { titel: "Borst (min)", klasse: "borst", kol: [k("L", "L"), k("R", "R"), k("borst", "tot", true), k("borstKeer", "keer")] },
   ]);
   $("#tabeluitleg").textContent =
-    "k+k = kunstvoeding + gekolfd. " + (metFles ? "mm = moedermelk uit de fles. " : "") +
+    (heeft("kolven") && heeft("fles") ? "k+k = kunstvoeding + gekolfd. " : "") + (metFles ? "mm = moedermelk uit de fles. " : "") +
     (perWeek ? "Per week het gemiddelde per dag, over de dagen met registraties; de lopende week telt niet mee in Gem./dag." : "Gemiddelde over dagen met registraties, vandaag telt niet mee.");
 }
 
 // Tik op een dag in de tabel: naar die dag in de geschiedenis, om registraties te controleren.
-for (const t of ["#melktabel", "#borsttabel"]) {
+for (const t of ["#melktabel", "#luiertabel", "#borsttabel"]) {
   $(t).addEventListener("click", (e) => {
     const rij = e.target.closest("tr.tikbaar");
     if (!rij) return;
@@ -1371,6 +1517,13 @@ function openBewerk(id) {
   $("#b-kolfL").value = getal(v.kolfL) || "";
   $("#b-kolfR").value = getal(v.kolfR) || "";
   $("#b-door").textContent = v.door ? `Geregistreerd door ${v.door}` : "";
+  const toon = (sel, zichtbaar) => ($(sel).closest(".veld").hidden = !zichtbaar);
+  toon("#b-kolf", heeft("kolven") || getal(v.kolf));
+  toon("#b-kunst", heeft("fles") || getal(v.kunst));
+  const borst = heeft("borst") || getal(v.borstL) || getal(v.borstR) || v.eindKant;
+  toon("#b-links", borst);
+  toon("#b-rechts", borst);
+  toon("#b-eind", borst);
   dlgBewerk.showModal();
 }
 
@@ -1427,6 +1580,7 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-gedeeld").hidden = !isGedeeld();
   $("#i-code").textContent = gezin;
   $("#i-versie").textContent = `Versie ${APP_VERSIE}`;
+  for (const inp of $$("[data-aan]")) inp.checked = heeft(inp.dataset.aan);
   $("#i-status").textContent = isGedeeld()
     ? "Gegevens en lopende timers worden gedeeld via Firebase en werken ook offline."
     : "Lokale modus: gegevens staan alleen op dit toestel.";
@@ -1440,6 +1594,21 @@ dlgInst.addEventListener("close", () => {
     ls.set("naam", naam);
   }
 });
+
+for (const inp of $$("[data-aan]")) {
+  inp.addEventListener("change", () => {
+    const nieuw = { ...aanUit, [inp.dataset.aan]: inp.checked };
+    if (!ONDERDELEN.some((o) => nieuw[o] !== false)) {
+      inp.checked = true;
+      $("#i-status").textContent = "Laat minstens één onderdeel aan.";
+      return;
+    }
+    aanUit = nieuw;
+    ls.set("onderdelen", aanUit);
+    pasOnderdelenToe();
+    renderAlles();
+  });
+}
 
 $("#i-deel").addEventListener("click", async () => {
   const url = koppelLink();
@@ -1609,7 +1778,8 @@ async function start() {
   if (!naam || !gezin) await eersteKeer();
   if (nieuwGekoppeld && naam) toast("Gekoppeld aan jullie gezin");
 
-  toonModus(kolfLoopt() && !borstLoopt() ? "kolven" : borstLoopt() ? "borst" : modus);
+  pasOnderdelenToe();
+  toonModus(kolfLoopt() && !borstLoopt() && heeft("kolven") ? "kolven" : borstLoopt() && heeft("borst") ? "borst" : modus);
   zetTijden();
   werkTimersBij();
 
