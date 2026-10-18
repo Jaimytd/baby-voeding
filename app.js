@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "28";
+const APP_VERSIE = "29";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1335,9 +1335,16 @@ function pauzegrafiek(el, reeks, perWeek, kleur) {
     if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
     if (!p) return;
     const op = x.lopend ? ' opacity=".45"' : "";
-    svg += `<line x1="${cx}" x2="${cx}" y1="${y(p.min.duur)}" y2="${y(p.max.duur)}" stroke="${kleur}" stroke-width="${Math.max(2, Math.min(6, bw * 0.3))}" stroke-linecap="round" opacity="${x.lopend ? 0.15 : 0.3}"/>`;
+    // Streep van kortste tot langste, met een kapje aan beide kanten.
+    const kap = Math.max(3, Math.min(8, bw * 0.3));
+    svg += `<line x1="${cx}" x2="${cx}" y1="${y(p.min.duur)}" y2="${y(p.max.duur)}" stroke="${kleur}" stroke-width="1.5"${op}/>`;
+    for (const d of [p.min.duur, p.max.duur]) svg += `<line x1="${cx - kap}" x2="${cx + kap}" y1="${y(d)}" y2="${y(d)}" stroke="${kleur}" stroke-width="2" stroke-linecap="round"${op}/>`;
     svg += `<circle cx="${cx}" cy="${y(p.gem)}" r="${Math.max(2.5, Math.min(4, bw * 0.25))}" fill="${kleur}"${op}/>`;
-    if (n <= 14) svg += `<text x="${cx}" y="${Math.max(9, y(p.max.duur) - 4)}" class="waardelabel" text-anchor="middle">${uurKort(p.gem)}</text>`;
+    // Bij 7 dagen of minder: langste boven en kortste onder de streep.
+    if (n <= 7) {
+      svg += `<text x="${cx}" y="${Math.max(9, y(p.max.duur) - 4)}" class="waardelabel" text-anchor="middle">${uurKort(p.max.duur)}</text>`;
+      if (p.n > 1) svg += `<text x="${cx}" y="${Math.min(H - pb - 2, y(p.min.duur) + 11)}" class="waardelabel" text-anchor="middle">${uurKort(p.min.duur)}</text>`;
+    }
   });
   // Over de hele periode, zonder de lopende dag of week.
   const alle = rijen.filter((r) => !r.x.lopend).flatMap((r) => pauzesIn(r.x.d, plusDagen(r.x.d, perWeek ? 7 : 1)));
@@ -1349,8 +1356,69 @@ function pauzegrafiek(el, reeks, perWeek, kleur) {
   el.innerHTML = `<div class="grafiekkop"><h2>Tijd tussen voedingen${perWeek ? " (per week)" : ""}</h2></div>
     ${samenvatting}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde, kortste en langste tijd tussen voedingen per ${perWeek ? "week" : "dag"}">${svg}</svg>
-    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld (uu:mm)</span><span><i style="background:${kleur};opacity:.3"></i>kortste tot langste</span><span><i class="streep"></i>gemiddelde periode</span></div>
+    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld</span><span><i class="kapje" style="border-color:${kleur}"></i>kortste en langste</span><span><i class="streep"></i>gemiddelde periode</span></div>
+    <div class="tabelrol"><table class="dagtabel pauzetabel">
+      <thead><tr><th>${perWeek ? "Week" : "Dag"}</th><th>gem.</th><th>kortste</th><th>langste</th></tr></thead>
+      <tbody>${[...rijen].reverse().filter((r) => r.p).map(({ x, p }) => `<tr class="${x.lopend ? "nu" : ""}"><th>${x.naam}</th><td class="sub">${uurKort(p.gem)}</td>
+        <td>${uurKort(p.min.duur)}${perWeek ? "" : `<small>${uurMin(p.min.van)}-${uurMin(p.min.tot)}</small>`}</td>
+        <td>${uurKort(p.max.duur)}${perWeek ? "" : `<small>${uurMin(p.max.van)}-${uurMin(p.max.tot)}</small>`}</td></tr>`).join("")}</tbody>
+    </table></div>
     <p class="klein-grijs pauzeuitleg">Borst en fles binnen 45 minuten tellen als één voeding. Pauzes langer dan 12 uur tellen niet mee (waarschijnlijk vergeten te registreren).</p>`;
+}
+
+// Hoeveel melk per dagdeel: per dag (of week) de ml uit de fles in de nacht, ochtend, middag
+// en avond. Hoe donkerder het vak, hoe meer. Zo zie je of de grote flessen verschuiven.
+const DAGDELEN = [
+  { naam: "nacht", van: 0, tot: 6 },
+  { naam: "ochtend", van: 6, tot: 12 },
+  { naam: "middag", van: 12, tot: 18 },
+  { naam: "avond", van: 18, tot: 24 },
+];
+function dagdeelOverzicht(el, reeks, perWeek) {
+  const flesMl = (v) => (isKolven(v) || isLuier(v) ? 0 : getal(v.kunst) + getal(v.kolf));
+  const perDag = perDagIndex();
+  // Per dag: ml en aantal flessen per dagdeel.
+  const dagCel = (d) => DAGDELEN.map((dd) => {
+    const lijst = (perDag.get(d) || []).filter((v) => flesMl(v) && new Date(v.tijd).getHours() >= dd.van && new Date(v.tijd).getHours() < dd.tot);
+    return { ml: lijst.reduce((s, v) => s + flesMl(v), 0), keer: lijst.length };
+  });
+  const metFles = (d) => (perDag.get(d) || []).some(flesMl);
+  const rijen = reeks.map((x) => {
+    if (!perWeek) return { x, cellen: dagCel(x.d), heeft: metFles(x.d) };
+    // Per week: gemiddelde per dag over de dagen met flessen.
+    const dagen = Array.from({ length: 7 }, (_, i) => plusDagen(x.d, i)).filter((d) => d < dagStart(Date.now()) && metFles(d));
+    const cellen = DAGDELEN.map((_, j) => {
+      const som = dagen.reduce((s, d) => { const c = dagCel(d)[j]; return { ml: s.ml + c.ml, keer: s.keer + c.keer }; }, { ml: 0, keer: 0 });
+      return dagen.length ? { ml: Math.round(som.ml / dagen.length), keer: Math.round((som.keer / dagen.length) * 10) / 10 } : { ml: 0, keer: 0 };
+    });
+    return { x, cellen, heeft: dagen.length > 0 };
+  }).filter((r) => r.heeft);
+  if (!rijen.length) {
+    el.innerHTML = `<h2>Melk per dagdeel</h2><p class="klein-grijs">Nog geen flessen in deze periode.</p>`;
+    return;
+  }
+  const max = Math.max(1, ...rijen.flatMap((r) => r.cellen.map((c) => c.ml)));
+  const volle = rijen.filter((r) => !r.x.lopend);
+  const gem = DAGDELEN.map((_, j) => (volle.length ? Math.round(volle.reduce((s, r) => s + r.cellen[j].ml, 0) / volle.length) : 0));
+  const cel = (c) => `<td class="ddcel" style="--sterkte:${(c.ml / max).toFixed(2)}">${c.ml ? `<b>${c.ml}</b><small>${String(c.keer).replace(".", ",")}×</small>` : "·"}</td>`;
+  // Verandering: eerste helft van de periode tegen de tweede helft.
+  let verschil = "";
+  if (volle.length >= 4) {
+    const oud = volle.slice(0, Math.floor(volle.length / 2));
+    const nieuw = volle.slice(-Math.floor(volle.length / 2));
+    const g = (lijst, j) => lijst.reduce((s, r) => s + r.cellen[j].ml, 0) / lijst.length;
+    verschil = `<tr class="verschil"><th>Verschil</th>${DAGDELEN.map((_, j) => {
+      const d = Math.round(g(nieuw, j) - g(oud, j));
+      return `<td>${Math.abs(d) < 10 ? "=" : `${d > 0 ? "+" : ""}${d}`}</td>`;
+    }).join("")}</tr>`;
+  }
+  el.innerHTML = `<h2>Melk per dagdeel${perWeek ? " (gem. per dag, per week)" : ""}</h2>
+    <div class="tabelrol"><table class="dagtabel dagdeeltabel">
+      <thead><tr><th>${perWeek ? "Week" : "Dag"}</th>${DAGDELEN.map((dd) => `<th>${dd.naam}<small>${dd.van}-${dd.tot} u</small></th>`).join("")}</tr></thead>
+      <tbody>${[...rijen].reverse().map((r) => `<tr class="${r.x.lopend ? "nu" : ""}"><th>${r.x.naam}</th>${r.cellen.map(cel).join("")}</tr>`).join("")}</tbody>
+      <tfoot><tr><th>Gem./dag</th>${gem.map((m) => `<td>${m || "·"}</td>`).join("")}</tr>${verschil}</tfoot>
+    </table></div>
+    <p class="klein-grijs">ml uit de fles per dagdeel, met het aantal flessen (×). Hoe donkerder, hoe meer.${verschil ? " Verschil: de laatste helft van de periode tegen de eerste helft, in ml per dag." : ""}${perWeek ? "" : " Vandaag telt niet mee in het gemiddelde."}</p>`;
 }
 
 // Dagritme: per dag een tijdlijn van 0 tot 24 uur met de voedingen (stippen) en luiers (streepjes).
@@ -1388,13 +1456,15 @@ function ritmegrafiek(el, n) {
         if (heeft("kolven")) svg += `<circle cx="${cx}" cy="${y - 3}" r="3" fill="none" stroke="${kleur("--kolf")}" stroke-width="1.5"/>`;
       } else {
         const fles = getal(v.kunst) || getal(v.kolf);
-        if (fles && metFles) svg += `<circle cx="${cx}" cy="${y - 3}" r="3.6" fill="${kleur("--kunst")}"/>`;
+        // Grotere fles, grotere stip (tussen 2,5 en 6).
+        const ml = getal(v.kunst) + getal(v.kolf);
+        if (fles && metFles) svg += `<circle cx="${cx}" cy="${y - 3}" r="${Math.min(6, 2.5 + ml / 45).toFixed(1)}" fill="${kleur("--kunst")}" fill-opacity=".85"/>`;
         else if (!fles && heeft("borst")) svg += `<circle cx="${cx}" cy="${y - 3}" r="3.6" fill="${kleur("--borst")}"/>`;
       }
     }
   }
   const leg = [
-    metFles && `<span><i class="rond" style="background:${kleur("--kunst")}"></i>fles</span>`,
+    metFles && `<span><i class="rond" style="background:${kleur("--kunst")}"></i>fles (groter = meer ml)</span>`,
     heeft("borst") && `<span><i class="rond" style="background:${kleur("--borst")}"></i>borst</span>`,
     heeft("kolven") && `<span><i class="rond" style="border:1.5px solid ${kleur("--kolf")};background:none"></i>kolven</span>`,
     heeft("luiers") && `<span><i class="streepje" style="background:${kleur("--luier")}"></i>luier nat</span><span><i class="streepje" style="background:${kleur("--poep")}"></i>luier poep</span><span><i class="streepje" style="background:${kleur("--luier")};opacity:.45"></i>droog</span>`,
@@ -1472,6 +1542,9 @@ function renderOverzicht() {
   const pauze = $("#g-pauze");
   pauze.hidden = !MODI.some(modusAan);
   if (!pauze.hidden) pauzegrafiek(pauze, reeks, perWeek, kleur("--kunst"));
+  const dagdeel = $("#g-dagdeel");
+  dagdeel.hidden = !modusAan("fles");
+  if (!dagdeel.hidden) dagdeelOverzicht(dagdeel, reeks, perWeek);
   const ritme = $("#g-ritme");
   ritme.hidden = !MODI.some(modusAan) && !heeft("luiers");
   if (!ritme.hidden) ritmegrafiek(ritme, periode === 7 ? 7 : 14);

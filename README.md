@@ -25,7 +25,8 @@ De app helpt tegen vergissingen: een vraag bij een timer die al uren loopt, bij 
 
 - **Gisteren in één blik:** aantal flessen met de gemiddelde hoeveelheid en de langste pauze, luiers (nat, poep, droog), kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
 - **Grafieken** over 7, 14 of 30 dagen of 12 weken: kunstvoeding (met de 500 ml-lijn als de baby ook moedermelk krijgt), aantal flessen, luiers, kolfopbrengst, kunstvoeding plus gekolfd samen en borstvoeding.
-- **Tijd tussen voedingen:** per dag (of week) de gemiddelde pauze, met een streep van de kortste tot de langste. Bovenaan het gemiddelde, de kortste en de langste pauze van de hele periode, met wanneer die was. De nacht telt mee; pauzes langer dan 12 uur niet (vergeten te registreren).
+- **Tijd tussen voedingen:** per dag (of week) de gemiddelde pauze, met een streep van de kortste tot de langste. In een tabel eronder per dag het gemiddelde, de kortste en de langste pauze, met de tijden. Bovenaan het gemiddelde, de kortste en de langste pauze van de hele periode, met wanneer die was. De nacht telt mee; pauzes langer dan 12 uur niet (vergeten te registreren).
+- **Melk per dagdeel:** per dag hoeveel ml er in de nacht (0 tot 6 uur), ochtend, middag en avond gedronken is, met het aantal flessen. Hoe donkerder het vak, hoe meer. Onderaan het gemiddelde en het verschil tussen de laatste en de eerste helft van de periode, zodat je ziet of het verschuift.
 - **Dagritme:** per dag een tijdlijn van 0 tot 24 uur met elke voeding en luier, zodat je ziet wanneer de baby drinkt en of er een vast ritme in komt.
 - **Tabellen per dag of week:** melk (aantal flessen, kunstvoeding, gekolfd L/R/totaal, samen), luiers en borstvoeding (L/R/totaal/keer), met totaal en gemiddelde. Tik op een dag om de registraties te zien.
 

@@ -569,3 +569,18 @@ body.zonder-luiers [data-deel~="luiers"] { display: none !important; }
 .pauzesom b { color: var(--tekst); }
 .pauzesom small { font-size: 12px; }
 .pauzeuitleg { margin: 8px 0 0; }
+.legenda i.kapje { width: 10px; height: 10px; border: 2px solid; border-left: 0; border-right: 0; border-radius: 0; background: none; }
+.pauzetabel { margin-top: 10px; }
+.pauzetabel td small { display: block; font-size: 10px; color: var(--zacht); font-weight: 400; }
+/* melk per dagdeel: kleur naar hoeveelheid */
+.dagdeeltabel th small { display: block; font-size: 10px; font-weight: 400; }
+.dagdeeltabel thead th { text-align: center; }
+.dagdeeltabel thead th:first-child { text-align: left; }
+.dagdeeltabel td { text-align: center; }
+.dagdeeltabel td.ddcel { background: color-mix(in srgb, var(--kunst) calc(var(--sterkte) * 55%), transparent); border-radius: 6px; border: 2px solid var(--kaart); }
+.dagdeeltabel td.ddcel b { display: block; font-size: 13px; }
+.dagdeeltabel td.ddcel small { display: block; font-size: 10px; opacity: .8; }
+.dagdeeltabel tr.verschil td { font-weight: 700; }
+.pauzetabel thead th:first-child { text-align: left; }
+.dagdeeltabel td.ddcel { color: var(--tekst); }
+.dagdeeltabel tr.nu td.ddcel { opacity: .65; }
