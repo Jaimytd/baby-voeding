@@ -6,6 +6,10 @@ Eenvoudige app om bij te houden wat de baby krijgt, voor twee ouders op twee tel
 
 In **Instellingen** zet je per telefoon aan wat jullie bijhouden: **Fles (kunstvoeding)**, **Luiers**, **Borstvoeding** en **Kolven en moedermelk in de fles**. Wat uit staat, verdwijnt uit het registreren en uit het overzicht. Eerdere registraties blijven bewaard en staan gewoon in de geschiedenis. Een nieuw gezin begint met alles aan.
 
+## Halloween-thema
+
+In **Instellingen** onder **Uiterlijk** zet je het Halloween-thema aan: warme oranje kleuren, een pompoen en een vleermuisje bij de titel en een spinnenweb in de hoek. Werkt licht en donker, en geldt per telefoon.
+
 ## Registreren
 
 Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd onderin beeld.

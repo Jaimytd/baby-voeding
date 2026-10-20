@@ -584,3 +584,40 @@ body.zonder-luiers [data-deel~="luiers"] { display: none !important; }
 .pauzetabel thead th:first-child { text-align: left; }
 .dagdeeltabel td.ddcel { color: var(--tekst); }
 .dagdeeltabel tr.nu td.ddcel { opacity: .65; }
+
+/* ---------- Halloween-thema (aan te zetten in Instellingen) ---------- */
+body.halloween {
+  --bg: #fbf0e4; --kaart: #fffaf4; --veld: #f8e8d8; --lijn: #f0dccb;
+  --primair: #ea580c; --tekst: #2a1f1a;
+}
+@media (prefers-color-scheme: dark) {
+  body.halloween {
+    --bg: #16111b; --kaart: #221a29; --veld: #2d2335; --lijn: #3b2f45;
+    --primair: #fb923c; --tekst: #f5ece6;
+  }
+  body.halloween::before { opacity: .3; filter: invert(1); }
+  body.halloween .top::after { filter: invert(1) brightness(.9); }
+}
+/* spinnenweb met spinnetje in de hoek */
+body.halloween::before {
+  content: ""; position: fixed; top: 0; right: 0; width: 120px; height: 120px; z-index: -1; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23888' stroke-width='.8'%3E%3Cpath d='M100 0L100.0 140.0 M100 0L63.8 135.2 M100 0L30.0 121.2 M100 0L1.0 99.0 M100 0L-21.2 70.0 M100 0L-35.2 36.2 M100 0L-40.0 0.0'/%3E%3Cpath d='M100.0 22.0Q97.5 18.8 94.3 21.3Q92.8 17.5 89.0 19.1Q88.5 15.0 84.4 15.6Q85.0 11.5 80.9 11.0Q82.5 7.2 78.7 5.7Q81.2 2.5 78.0 0.0 M100.0 44.0Q95.1 37.5 88.6 42.5Q85.5 35.0 78.0 38.1Q77.0 30.0 68.9 31.1Q70.0 23.0 61.9 22.0Q65.0 14.5 57.5 11.4Q62.5 4.9 56.0 0.0 M100.0 66.0Q92.6 56.3 82.9 63.8Q78.3 52.4 67.0 57.2Q65.4 45.0 53.3 46.7Q55.0 34.6 42.8 33.0Q47.6 21.7 36.2 17.1Q43.7 7.4 34.0 0.0 M100.0 88.0Q90.1 75.0 77.2 85.0Q71.0 69.9 56.0 76.2Q53.9 60.0 37.8 62.2Q40.0 46.1 23.8 44.0Q30.1 29.0 15.0 22.8Q25.0 9.9 12.0 0.0'/%3E%3C/g%3E%3Cpath d='M58 0V46' stroke='%23888' stroke-width='.6'/%3E%3Cg fill='%23555'%3E%3Cellipse cx='58' cy='50' rx='3.2' ry='4'/%3E%3Ccircle cx='58' cy='45.5' r='2.2'/%3E%3C/g%3E%3Cg stroke='%23555' stroke-width='.9' fill='none'%3E%3Cpath d='M55 48l-4-3M55 50l-5 0M55 52l-4 3M61 48l4-3M61 50l5 0M61 52l4 3'/%3E%3C/g%3E%3C/svg%3E") no-repeat top right / contain; opacity: .22;
+}
+/* pompoen achter de titel en een vleermuisje */
+body.halloween .top h1 { display: flex; align-items: center; gap: 8px; }
+body.halloween .top h1::after {
+  content: ""; width: 26px; height: 26px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 9c0-2.5 1-4.5 3.5-6' stroke='%2365a30d' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Cellipse cx='10' cy='19.5' rx='7' ry='9.5' fill='%23ea580c'/%3E%3Cellipse cx='22' cy='19.5' rx='7' ry='9.5' fill='%23ea580c'/%3E%3Cellipse cx='16' cy='19.5' rx='7.5' ry='10.5' fill='%23f97316'/%3E%3Cpath d='M10.5 18l2-3.2 2 3.2zM17.5 18l2-3.2 2 3.2z' fill='%23431407'/%3E%3Cpath d='M10 22.5l2 1.6 2-1.2 2 1.4 2-1.4 2 1.2 2-1.6q-2.5 4-6 4t-6-4z' fill='%23431407'/%3E%3C/svg%3E") no-repeat center / contain;
+  animation: wiebel 6s ease-in-out infinite;
+}
+body.halloween .top { position: relative; }
+body.halloween .top::after {
+  content: ""; position: absolute; left: 132px; top: 8px; width: 22px; height: 11px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M20 6c1-2 2-2 2-4l1 3c3-1 6-3 8-1 2 1 4 0 6-2-1 4-3 7-6 7-1 2-3 3-5 2-2 2-4 2-6 2-2 0-4 0-6-2-2 1-4 0-5-2-3 0-5-3-6-7 2 2 4 3 6 2 2-2 5 0 8 1l1-3c0 2 1 2 2 4z' fill='%233b0764'/%3E%3C/svg%3E") no-repeat center / contain; opacity: .55;
+}
+body.halloween .primair:not(:disabled) { background: linear-gradient(180deg, #f97316, #ea580c); }
+body.halloween .kaart { box-shadow: 0 0 0 1px var(--lijn), 0 2px 10px rgb(234 88 12 / .06); }
+@keyframes wiebel { 0%, 90%, 100% { transform: rotate(0); } 94% { transform: rotate(-8deg); } 97% { transform: rotate(6deg); } }
+@media (prefers-reduced-motion: reduce) { body.halloween .top h1::after { animation: none; } }
+
+/* modusknoppen: alleen zichtbare knoppen verdelen de breedte */
+.modus { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }

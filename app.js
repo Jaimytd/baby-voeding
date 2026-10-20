@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "29";
+const APP_VERSIE = "30";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -433,6 +433,17 @@ const heeft = (o) => aanUit[o] !== false;
 // De fles is er voor kunstvoeding en voor gekolfde moedermelk.
 const modusAan = (m) => (m === "fles" ? heeft("fles") || heeft("kolven") : heeft(m));
 const MODI = ["fles", "kolven", "borst"];
+
+// ---------- thema (per telefoon) ----------
+function zetThema(halloween) {
+  document.body.classList.toggle("halloween", halloween);
+  // Kleur van de statusbalk mee laten kleuren.
+  for (const m of $$('meta[name="theme-color"]')) {
+    const voorDonker = m.media.includes("dark");
+    m.content = halloween ? (voorDonker ? "#16111b" : "#fbf0e4") : voorDonker ? "#1a1716" : "#fbf7f4";
+  }
+}
+zetThema(ls.get("thema") === "halloween");
 
 // ---------- tabbladen en modus ----------
 function toonTab(tab) {
@@ -1716,6 +1727,7 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-code").textContent = gezin;
   $("#i-versie").textContent = `Versie ${APP_VERSIE}`;
   for (const inp of $$("[data-aan]")) inp.checked = heeft(inp.dataset.aan);
+  $("#i-halloween").checked = document.body.classList.contains("halloween");
   $("#i-status").textContent = isGedeeld()
     ? "Gegevens en lopende timers worden gedeeld via Firebase en werken ook offline."
     : "Lokale modus: gegevens staan alleen op dit toestel.";
@@ -1744,6 +1756,12 @@ for (const inp of $$("[data-aan]")) {
     renderAlles();
   });
 }
+
+$("#i-halloween").addEventListener("change", (e) => {
+  ls.set("thema", e.target.checked ? "halloween" : "");
+  zetThema(e.target.checked);
+  renderOverzicht();
+});
 
 $("#i-deel").addEventListener("click", async () => {
   const url = koppelLink();
