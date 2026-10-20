@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "33";
+const APP_VERSIE = "34";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -490,7 +490,7 @@ function themaMoment(t) {
       v.className = "vlieg";
       // Lijf met twee vleugels die klappen; de tweede vleermuis klapt net iets anders.
       v.innerHTML = `<b class="vl"></b><b class="lijf"></b><b class="vl vr"></b>`;
-      for (const w of v.querySelectorAll(".vl")) w.style.animationDuration = `${0.24 + vertraging * 0.05}s`;
+      for (const w of v.querySelectorAll(".vl")) w.style.animationDuration = `${0.38 + vertraging * 0.06}s`;
       Object.assign(v.style, { animationDelay: `${vertraging}s`, top: `${hoogte}px`, scale: String(schaal) });
       vak.append(v);
     }
