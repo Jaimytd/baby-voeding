@@ -16,6 +16,17 @@ service cloud.firestore {
         && request.resource.data.door == resource.data.door;
     }
 
+    // Gegevens van het kind, gedeeld tussen de telefoons.
+    match /gezinnen/{gezin}/status/gezin {
+      allow read, delete: if codeOk(gezin);
+      allow write: if codeOk(gezin)
+        && request.resource.data.keys().hasOnly(['geboortedatum', 'kind', 'door', 'bijgewerkt'])
+        && (request.resource.data.get('geboortedatum', null) == null
+            || (request.resource.data.geboortedatum is string && request.resource.data.geboortedatum.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && request.resource.data.get('kind', '').size() <= 30
+        && request.resource.data.get('door', '').size() <= 30;
+    }
+
     // Lopende timers, gedeeld tussen de telefoons.
     match /gezinnen/{gezin}/status/{doc} {
       allow read, delete: if codeOk(gezin);
@@ -62,7 +73,31 @@ service cloud.firestore {
 
     function geldig(d) {
       return d.tijd is int && d.door is string && d.door.size() <= 30
-        && (voeding(d) || kolven(d) || luier(d));
+        && (voeding(d) || kolven(d) || luier(d) || slaap(d) || meting(d) || hapje(d));
+    }
+
+    // Slaap: begint op tijd, eind is leeg zolang de baby slaapt (hoogstens 24 uur).
+    function slaap(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'eind', 'door'])
+        && d.type == 'slaap'
+        && (d.eind == null || (d.eind is int && d.eind >= d.tijd && d.eind - d.tijd <= 86400000));
+    }
+
+    // Meting: gewicht in gram en/of lengte in mm.
+    function meting(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'gewicht', 'lengte', 'door'])
+        && d.type == 'meting'
+        && (d.get('gewicht', null) == null || (d.gewicht is int && d.gewicht >= 0 && d.gewicht <= 30000))
+        && (d.get('lengte', null) == null || (d.lengte is int && d.lengte >= 0 && d.lengte <= 1500))
+        && (d.get('gewicht', null) != null || d.get('lengte', null) != null);
+    }
+
+    // Eerste hapjes: wat er geproefd is en hoe het ging.
+    function hapje(d) {
+      return d.keys().hasOnly(['type', 'tijd', 'wat', 'reactie', 'door'])
+        && d.type == 'hapje'
+        && d.wat is string && d.wat.size() >= 1 && d.wat.size() <= 40
+        && (d.get('reactie', null) == null || d.reactie in ['goed', 'matig', 'niet', 'allergie']);
     }
 
     // Een voeding: borst (per kant), moedermelk uit de fles en kunstvoeding.
@@ -73,10 +108,11 @@ service cloud.firestore {
         && (d.eindKant == null || d.eindKant in ['L', 'R']);
     }
 
-    // Een luier: nat en/of poep (allebei nee = droog).
+    // Een luier: nat en/of poep (allebei nee = droog), met eventueel een opmerking.
     function luier(d) {
-      return d.keys().hasOnly(['type', 'tijd', 'nat', 'poep', 'door'])
-        && d.type == 'luier' && d.nat is bool && d.poep is bool;
+      return d.keys().hasOnly(['type', 'tijd', 'nat', 'poep', 'opmerking', 'door'])
+        && d.type == 'luier' && d.nat is bool && d.poep is bool
+        && (d.get('opmerking', null) == null || (d.opmerking is string && d.opmerking.size() <= 200));
     }
 
     // Een kolfsessie: duur en opbrengst per borst.

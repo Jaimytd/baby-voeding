@@ -3,7 +3,7 @@
 import { firebaseConfig } from "./config.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
-const DAGEN_TERUG = 120;
+const DAGEN_TERUG = 400;
 
 // Firestore weigert undefined; maak er null van.
 const schoon = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v === undefined ? null : v)));
@@ -44,6 +44,7 @@ async function firestoreStore(gezin) {
   if (emu) fs.connectFirestoreEmulator(db, emu.split(":")[0], Number(emu.split(":")[1]));
   const col = fs.collection(db, "gezinnen", gezin, "voedingen");
   const timerDoc = fs.doc(db, "gezinnen", gezin, "status", "timer");
+  const gezinDoc = fs.doc(db, "gezinnen", gezin, "status", "gezin");
 
   // Een listener die een fout krijgt, stopt voorgoed. Daarom na een fout zelf opnieuw
   // beginnen, met oplopende wachttijd (2 s, 4 s, ... tot 1 minuut).
@@ -126,6 +127,30 @@ async function firestoreStore(gezin) {
           ? window.dispatchEvent(new CustomEvent("timerverouderd"))
           : meldFout(e),
       ),
+    // Metingen en hapjes: altijd allemaal, ook van langer dan DAGEN_TERUG geleden.
+    volgAltijd(cb) {
+      return blijfVolgen((gelukt, mislukt) =>
+        fs.onSnapshot(
+          fs.query(col, fs.where("type", "in", ["meting", "hapje"])),
+          (snap) => {
+            gelukt();
+            cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.tijd - a.tijd));
+          },
+          mislukt,
+        ),
+      );
+    },
+    // Gegevens van het kind (geboortedatum, naam).
+    zetGezin: (velden, door) =>
+      fs.setDoc(gezinDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch((e) => meldFout(e)),
+    volgGezin(cb) {
+      return blijfVolgen((gelukt, mislukt) =>
+        fs.onSnapshot(gezinDoc, (snap) => {
+          gelukt();
+          cb(snap.exists() ? snap.data() : {});
+        }, mislukt),
+      );
+    },
     volgTimer(cb) {
       return blijfVolgen((gelukt, mislukt) =>
         fs.onSnapshot(
@@ -144,6 +169,7 @@ async function firestoreStore(gezin) {
 function lokaleStore(gezin) {
   const sleutel = "voedingen:" + gezin;
   const luisteraars = new Set();
+  const gezinLuisteraars = new Set();
   const lees = () => {
     try {
       return JSON.parse(localStorage.getItem(sleutel)) || [];
@@ -175,6 +201,18 @@ function lokaleStore(gezin) {
     },
     remove(id) {
       schrijf(lees().filter((x) => x.id !== id));
+    },
+    volgAltijd(cb) {
+      return this.subscribe((lijst) => cb(lijst.filter((v) => v.type === "meting" || v.type === "hapje")));
+    },
+    zetGezin(velden) {
+      localStorage.setItem("gezin:" + gezin, JSON.stringify({ ...JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}"), ...velden }));
+      gezinLuisteraars.forEach((cb) => cb(JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}")));
+    },
+    volgGezin(cb) {
+      gezinLuisteraars.add(cb);
+      cb(JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}"));
+      return () => gezinLuisteraars.delete(cb);
     },
   };
 }

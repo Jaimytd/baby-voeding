@@ -31,8 +31,13 @@
     </div>
 
     <div id="tab-registreren" class="tab">
+      <div id="oppas-melding" class="melding oppas" hidden>Oppasstand: alleen vandaag. <button type="button" id="oppas-uit">Uitzetten</button></div>
+      <div id="feest" class="feest" hidden>
+        <span id="feest-tekst"></span>
+        <button type="button" id="feest-ok" aria-label="Sluiten">OK</button>
+      </div>
       <section class="laatste" aria-live="polite">
-        <div class="label">Laatste voeding</div>
+        <div class="label"><span class="labeltekst">Laatste voeding</span><span id="leeftijd"></span></div>
         <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
         <div id="laatste-detail" class="detail"></div>
         <div id="laatste-ritme" class="detail"></div>
@@ -195,6 +200,31 @@
         </div>
       </section>
 
+      <section class="kaart slaapkaart" id="slaapkaart" data-deel="slaap">
+        <div class="luierkop"><h2>Slaap</h2><span id="laatste-slaap" class="klein-grijs"></span></div>
+        <div class="slaaprij">
+          <button type="button" class="pil slaapknop" id="slaap-knop">Slaapt nu</button>
+          <span id="slaap-status" class="slaapstatus"></span>
+        </div>
+      </section>
+
+      <section class="kaart hapjeskaart" id="hapjeskaart" data-deel="hapjes">
+        <div class="luierkop"><h2>Eerste hapjes</h2><span id="hapjes-aantal" class="klein-grijs"></span></div>
+        <form id="hapje-form" class="hapjerij" autocomplete="off">
+          <input type="text" id="hapje-wat" maxlength="40" placeholder="Wat heeft ze geproefd?" list="hapje-lijst" enterkeyhint="done">
+          <datalist id="hapje-lijst">
+            <option value="Wortel"><option value="Pastinaak"><option value="Zoete aardappel"><option value="Pompoen"><option value="Broccoli"><option value="Bloemkool"><option value="Courgette"><option value="Avocado"><option value="Banaan"><option value="Appel"><option value="Peer"><option value="Rijstpap"><option value="Havermout"><option value="Pindakaas"><option value="Ei"><option value="Yoghurt"><option value="Brood"><option value="Vis"><option value="Kip">
+          </datalist>
+          <div class="segment reactiekeuze" role="group" aria-label="Hoe ging het?">
+            <button type="button" data-reactie="goed" class="aan">Lekker</button>
+            <button type="button" data-reactie="matig">Zo zo</button>
+            <button type="button" data-reactie="niet">Niet</button>
+            <button type="button" data-reactie="allergie">Reactie</button>
+          </div>
+          <button type="submit" class="primair klein breed">Hapje opslaan</button>
+        </form>
+      </section>
+
       <section class="kaart" id="vandaagkaart">
         <h2>Vandaag</h2>
         <div id="totalen-vandaag"></div>
@@ -221,6 +251,15 @@
       <section class="kaart grafiek" id="g-pauze"></section>
       <section class="kaart" id="g-dagdeel"></section>
       <section class="kaart grafiek" id="g-ritme"></section>
+      <section class="kaart grafiek" id="g-slaap" data-deel="slaap"></section>
+      <section class="kaart" id="wiedeedwat"></section>
+      <section class="kaart" id="groei"></section>
+      <section class="kaart" id="hapjes-overzicht" data-deel="hapjes"></section>
+      <section class="kaart deelkaart">
+        <h2>Weekkaart</h2>
+        <p class="klein-grijs">Eén plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.</p>
+        <button type="button" id="weekkaart" class="secundair breed">Weekkaart maken</button>
+      </section>
       <section class="kaart grafiek" id="g-luiers" data-deel="luiers"></section>
       <section class="kaart grafiek" id="g-kolf" data-deel="kolven"></section>
       <section class="kaart grafiek" id="g-samen" data-deel="kolven fles"></section>
@@ -292,6 +331,37 @@
       <div class="b-luier" hidden>
         <label class="veld check"><input type="checkbox" id="b-nat"> Nat (plas)</label>
         <label class="veld check"><input type="checkbox" id="b-poep"> Poep</label>
+        <label class="veld">Opmerking (bijv. kleur, voor de dokter)
+          <input type="text" id="b-opmerking" maxlength="200" placeholder="Niets">
+        </label>
+      </div>
+      <div class="b-slaap" hidden>
+        <label class="veld">Wakker om (leeg = slaapt nog)
+          <input type="datetime-local" id="b-wakker">
+        </label>
+      </div>
+      <div class="b-meting" hidden>
+        <div class="tweeveld">
+          <label class="veld">Gewicht (gram)
+            <input type="number" inputmode="numeric" min="0" max="30000" id="b-gewicht">
+          </label>
+          <label class="veld">Lengte (cm)
+            <input type="number" inputmode="decimal" min="0" max="150" step="0.1" id="b-lengte">
+          </label>
+        </div>
+      </div>
+      <div class="b-hapje" hidden>
+        <label class="veld">Wat
+          <input type="text" id="b-wat" maxlength="40">
+        </label>
+        <label class="veld">Hoe ging het
+          <select id="b-reactie">
+            <option value="goed">Lekker</option>
+            <option value="matig">Zo zo</option>
+            <option value="niet">Niet</option>
+            <option value="allergie">Reactie (huid, spugen)</option>
+          </select>
+        </label>
       </div>
       <div class="b-kolven">
         <div class="tweeveld">
@@ -314,12 +384,35 @@
           </label>
         </div>
       </div>
-      <label class="veld">Datum en tijd
+      <label class="veld"><span id="b-tijdlabel">Datum en tijd</span>
         <input type="datetime-local" id="b-tijd" required>
       </label>
       <p class="klein-grijs" id="b-door"></p>
       <div class="knoppen">
         <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>
+        <span class="vul"></span>
+        <button value="annuleer" formnovalidate class="secundair">Annuleren</button>
+        <button value="opslaan" class="primair klein">Opslaan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Meting (gewicht, lengte) -->
+  <dialog id="dlg-meting" class="sheet">
+    <form method="dialog" id="form-meting">
+      <h2>Meting toevoegen</h2>
+      <div class="tweeveld">
+        <label class="veld">Gewicht (gram)
+          <input type="number" inputmode="numeric" min="0" max="30000" id="m-gewicht" placeholder="Bijv. 4850">
+        </label>
+        <label class="veld">Lengte (cm)
+          <input type="number" inputmode="decimal" min="0" max="150" step="0.1" id="m-lengte" placeholder="Bijv. 56,5">
+        </label>
+      </div>
+      <label class="veld">Datum
+        <input type="date" id="m-datum" required>
+      </label>
+      <div class="knoppen">
         <span class="vul"></span>
         <button value="annuleer" formnovalidate class="secundair">Annuleren</button>
         <button value="opslaan" class="primair klein">Opslaan</button>
@@ -356,11 +449,25 @@
         <button type="button" id="i-koppel" class="primair klein breed">Koppelen</button>
       </div>
       <fieldset class="onderdelen">
+        <legend>Jullie kind</legend>
+        <div class="tweeveld">
+          <label class="veld">Naam
+            <input type="text" id="i-kind" maxlength="30" placeholder="Bijv. Noor">
+          </label>
+          <label class="veld">Geboortedatum
+            <input type="date" id="i-geboren">
+          </label>
+        </div>
+        <p class="klein-grijs">Gedeeld met de andere telefoon. Geeft de leeftijd, maandverjaardagen en de groeikaart.</p>
+      </fieldset>
+      <fieldset class="onderdelen">
         <legend>Wat houden jullie bij?</legend>
         <label class="schakel"><span>Fles (kunstvoeding)</span><input type="checkbox" role="switch" data-aan="fles"></label>
         <label class="schakel"><span>Luiers</span><input type="checkbox" role="switch" data-aan="luiers"></label>
         <label class="schakel"><span>Borstvoeding</span><input type="checkbox" role="switch" data-aan="borst"></label>
         <label class="schakel"><span>Kolven en moedermelk in de fles</span><input type="checkbox" role="switch" data-aan="kolven"></label>
+        <label class="schakel"><span>Slaap</span><input type="checkbox" role="switch" data-aan="slaap"></label>
+        <label class="schakel"><span>Eerste hapjes (vanaf 4 tot 6 maanden)</span><input type="checkbox" role="switch" data-aan="hapjes"></label>
         <p class="klein-grijs">Geldt voor deze telefoon. Uitzetten verbergt een onderdeel; wat al geregistreerd is, blijft bewaard en staat gewoon in de geschiedenis.</p>
       </fieldset>
       <fieldset class="onderdelen">
@@ -369,9 +476,20 @@
           <button type="button" data-thema="gewoon">Gewoon</button>
           <button type="button" data-thema="auto">Auto</button>
           <button type="button" data-thema="halloween">Halloween</button>
+          <button type="button" data-thema="sinterklaas">Sint</button>
           <button type="button" data-thema="kerst">Kerst</button>
+          <button type="button" data-thema="pasen">Pasen</button>
+          <button type="button" data-thema="zomer">Zomer</button>
+          <button type="button" data-thema="herfst">Herfst</button>
+          <button type="button" data-thema="verjaardag">Feest</button>
         </div>
         <p class="klein-grijs" id="thema-uitleg"></p>
+        <label class="schakel"><span>Nachtstand (22 tot 7 uur donker en rustig)</span><input type="checkbox" role="switch" id="i-nacht"></label>
+      </fieldset>
+      <fieldset class="onderdelen" id="i-oppas">
+        <legend>Oppas</legend>
+        <p class="klein-grijs">Een link voor opa, oma of de oppas: dezelfde app, maar alleen met vandaag en zonder de instellingen. Let op: wie de link heeft, kan alles registreren.</p>
+        <button type="button" id="i-oppaslink" class="secundair breed">Oppaslink delen</button>
       </fieldset>
       <p class="klein-grijs" id="i-status"></p>
       <p class="klein-grijs" id="i-versie"></p>

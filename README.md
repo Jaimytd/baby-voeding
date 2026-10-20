@@ -6,11 +6,30 @@ Eenvoudige app om bij te houden wat de baby krijgt, voor twee ouders op twee tel
 
 In **Instellingen** zet je per telefoon aan wat jullie bijhouden: **Fles (kunstvoeding)**, **Luiers**, **Borstvoeding** en **Kolven en moedermelk in de fles**. Wat uit staat, verdwijnt uit het registreren en uit het overzicht. Eerdere registraties blijven bewaard en staan gewoon in de geschiedenis. Een nieuw gezin begint met alles aan.
 
+## Jullie kind
+
+In **Instellingen** vul je de naam en geboortedatum in (gedeeld met de andere telefoon). Bovenaan staat dan de leeftijd. Op een maandverjaardag en op de verjaardag is er een feestje met confetti, en op de verjaardag krijgt de app een feestthema. Andere mijlpalen die gevierd worden: de 50e, 100e, 250e, 500e en 1000e fles, luier 100, 250, 500 en 1000, en de eerste nacht met 6 en met 8 uur aan één stuk. Elke telefoon viert een mijlpaal één keer.
+
+## Slaap, groei en eerste hapjes
+
+- **Slaap:** een kaart met één knop: **Slaapt nu** en daarna **Wakker**. De slaap is gedeeld, dus de andere telefoon ziet hem lopen en kan hem ook stoppen. In Vandaag, de geschiedenis, het dagritme en het overzicht staat hoeveel er geslapen is. Vergeten te stoppen? Na 16 uur vraagt de app of het klopt.
+- **Groei:** in het overzicht, **Meting toevoegen** na elk bezoek aan het consultatiebureau: gewicht in gram en lengte in cm. Je ziet de toename per week, een grafiek van het gewicht per week oud en een tabel. De curve van het consultatiebureau blijft leidend.
+- **Eerste hapjes** (aan te zetten in Instellingen): wat ze geproefd heeft en hoe het ging. In het overzicht een lijst per gerecht met de eerste keer, hoe vaak en de laatste reactie.
+- **Luier met opmerking:** tik op een luier in de geschiedenis om er een opmerking bij te zetten, bijvoorbeeld over de kleur.
+
+## Handig
+
+- **Volgende fles:** bovenaan staat op basis van het ritme van de afgelopen 24 uur wanneer de volgende fles ongeveer is.
+- **Wie deed wat:** in het overzicht per persoon de flessen, nachtflessen, luiers en slaapjes, met een kroontje voor de nachtkoning.
+- **Weekkaart:** één plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.
+- **Nachtstand:** tussen 22 en 7 uur is de app donker en rustig, met grotere knoppen bij luier en slaap. Uit te zetten in Instellingen.
+- **Oppasstand:** deel in Instellingen de oppaslink. Op die telefoon ziet de app alleen vandaag en geen instellingen. Het is een weergave, geen slot: wie de link heeft, kan alles registreren.
+
 ## Thema's
 
-In **Instellingen** onder **Thema** kies je **Gewoon**, **Auto**, **Halloween** of **Kerst**. Standaard staat het op **Auto**. Een thema geeft andere kleuren en versiert vaste plekken: een icoon bij de titel met een figuurtje erboven, iets in de hoek, iets dat aan de invoerkaart hangt, een figuurtje dat over de luierkaart en de kaart Gisteren kijkt, icoontjes bij Vandaag, Geschiedenis, Instellingen en de meldingen, icoontjes en figuurtjes tussen de dagen in de geschiedenis en bij de grafieken, een gekleurde streep boven de onderbalk en een versierd stukje grond onderaan de pagina. Bij het openen of terugkomen in de app vliegen er fladderende vleermuizen voorbij of dwarrelt er even sneeuw.
+In **Instellingen** onder **Thema** kies je **Gewoon**, **Auto** of een van de thema's: Halloween, Sinterklaas, Kerst, Pasen, Zomer, Herfst of Feest. Standaard staat het op **Auto**. Een thema geeft andere kleuren en versiert vaste plekken: een icoon bij de titel met een figuurtje erboven, iets in de hoek, iets dat aan de invoerkaart hangt, een figuurtje dat over de luierkaart en de kaart Gisteren kijkt, icoontjes bij Vandaag, Geschiedenis, Instellingen en de meldingen, icoontjes en figuurtjes tussen de dagen in de geschiedenis en bij de grafieken, een gekleurde streep boven de onderbalk en een versierd stukje grond onderaan de pagina. Bij het openen of terugkomen in de app vliegen er fladderende vleermuizen voorbij of dwarrelt er even sneeuw.
 
-**Auto** kiest het thema op datum: Halloween van 10 oktober tot en met 1 november, kerst van 1 december tot en met 6 januari, daarbuiten gewoon. Het thema geldt per telefoon.
+**Auto** kiest het thema op datum: herfst vanaf 21 september, Halloween van 10 oktober tot en met 1 november, Sinterklaas van 12 november tot en met 5 december, kerst van 6 december tot en met 6 januari, Pasen van Witte Donderdag tot en met Tweede Paasdag, zomer van 21 juni tot en met 31 augustus, en het feestthema op de verjaardag van jullie kind. Daarbuiten gewoon. Het thema geldt per telefoon en werkt ook in de nachtstand.
 
 Een nieuw thema toevoegen: een blok `body[data-thema="..."]` met de variabelen in `styles.css`, een periode in `SEIZOENEN` in `app.js` en een knop in Instellingen.
 
