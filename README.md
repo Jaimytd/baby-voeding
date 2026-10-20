@@ -6,9 +6,13 @@ Eenvoudige app om bij te houden wat de baby krijgt, voor twee ouders op twee tel
 
 In **Instellingen** zet je per telefoon aan wat jullie bijhouden: **Fles (kunstvoeding)**, **Luiers**, **Borstvoeding** en **Kolven en moedermelk in de fles**. Wat uit staat, verdwijnt uit het registreren en uit het overzicht. Eerdere registraties blijven bewaard en staan gewoon in de geschiedenis. Een nieuw gezin begint met alles aan.
 
-## Halloween-thema
+## Thema's
 
-In **Instellingen** onder **Uiterlijk** zet je het Halloween-thema aan: warme oranje kleuren, een pompoen en een vleermuisje bij de titel en een spinnenweb in de hoek. Werkt licht en donker, en geldt per telefoon.
+In **Instellingen** onder **Thema** kies je **Gewoon**, **Auto**, **Halloween** of **Kerst**. Een thema geeft andere kleuren en versiert vaste plekken: een icoon bij de titel met een figuurtje erboven, iets in de hoek, iets dat aan de invoerkaart hangt, een figuurtje dat over de luierkaart en de kaart Gisteren kijkt, icoontjes bij Vandaag, Geschiedenis, Instellingen en de meldingen, een gekleurde streep boven de onderbalk en een versierd stukje grond onderaan de pagina. Bij het openen vliegen er vleermuizen voorbij of dwarrelt er even sneeuw.
+
+**Auto** kiest het thema op datum: Halloween van 10 oktober tot en met 1 november, kerst van 1 december tot en met 6 januari, daarbuiten gewoon. Het thema geldt per telefoon.
+
+Een nieuw thema toevoegen: een blok `body[data-thema="..."]` met de variabelen in `styles.css`, een periode in `SEIZOENEN` in `app.js` en een knop in Instellingen.
 
 ## Registreren
 

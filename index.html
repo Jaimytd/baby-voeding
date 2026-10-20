@@ -195,7 +195,7 @@
         </div>
       </section>
 
-      <section class="kaart">
+      <section class="kaart" id="vandaagkaart">
         <h2>Vandaag</h2>
         <div id="totalen-vandaag"></div>
       </section>
@@ -364,8 +364,14 @@
         <p class="klein-grijs">Geldt voor deze telefoon. Uitzetten verbergt een onderdeel; wat al geregistreerd is, blijft bewaard en staat gewoon in de geschiedenis.</p>
       </fieldset>
       <fieldset class="onderdelen">
-        <legend>Uiterlijk</legend>
-        <label class="schakel"><span>Halloween-thema</span><input type="checkbox" role="switch" id="i-halloween"></label>
+        <legend>Thema</legend>
+        <div class="segment themakeuze" role="group" aria-label="Thema">
+          <button type="button" data-thema="gewoon">Gewoon</button>
+          <button type="button" data-thema="auto">Auto</button>
+          <button type="button" data-thema="halloween">Halloween</button>
+          <button type="button" data-thema="kerst">Kerst</button>
+        </div>
+        <p class="klein-grijs" id="thema-uitleg"></p>
       </fieldset>
       <p class="klein-grijs" id="i-status"></p>
       <p class="klein-grijs" id="i-versie"></p>

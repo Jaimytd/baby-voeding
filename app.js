@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "30";
+const APP_VERSIE = "31";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -435,15 +435,61 @@ const modusAan = (m) => (m === "fles" ? heeft("fles") || heeft("kolven") : heeft
 const MODI = ["fles", "kolven", "borst"];
 
 // ---------- thema (per telefoon) ----------
-function zetThema(halloween) {
-  document.body.classList.toggle("halloween", halloween);
-  // Kleur van de statusbalk mee laten kleuren.
-  for (const m of $$('meta[name="theme-color"]')) {
-    const voorDonker = m.media.includes("dark");
-    m.content = halloween ? (voorDonker ? "#16111b" : "#fbf0e4") : voorDonker ? "#1a1716" : "#fbf7f4";
+// "Auto" kiest het thema bij de tijd van het jaar. Een nieuw thema: een blok in styles.css
+// (body[data-thema="..."]), een periode hieronder en een knop in Instellingen.
+const SEIZOENEN = [
+  { thema: "halloween", naam: "Halloween", van: [10, 10], tot: [11, 1], uitleg: "10 oktober tot en met 1 november" },
+  { thema: "kerst", naam: "Kerst", van: [12, 1], tot: [1, 6], uitleg: "1 december tot en met 6 januari" },
+];
+const STATUSBALK = { "": ["#fbf7f4", "#1a1716"], halloween: ["#fbf0e4", "#16111b"], kerst: ["#f6f3ec", "#0f1a16"] };
+function seizoensThema(d = new Date()) {
+  const md = (d.getMonth() + 1) * 100 + d.getDate();
+  for (const s of SEIZOENEN) {
+    const van = s.van[0] * 100 + s.van[1];
+    const tot = s.tot[0] * 100 + s.tot[1];
+    // Een periode over de jaarwisseling heen (kerst) loopt door tot in januari.
+    if (van <= tot ? md >= van && md <= tot : md >= van || md <= tot) return s.thema;
   }
+  return "";
 }
-zetThema(ls.get("thema") === "halloween");
+// Wie het Halloween-thema al aan had, krijgt "Auto": nu Halloween, straks vanzelf kerst.
+let themaKeuze = ls.get("themaKeuze", ls.get("thema") === "halloween" ? "auto" : "gewoon");
+const actiefThema = () => (themaKeuze === "auto" ? seizoensThema() : themaKeuze === "gewoon" ? "" : themaKeuze);
+function pasThemaToe(metMoment = false) {
+  const t = actiefThema();
+  if ((document.body.dataset.thema || "") !== t) {
+    if (t) document.body.dataset.thema = t;
+    else delete document.body.dataset.thema;
+  } else if (!metMoment) return;
+  for (const m of $$('meta[name="theme-color"]')) m.content = STATUSBALK[t][m.media.includes("dark") ? 1 : 0];
+  if (t && metMoment) setTimeout(() => themaMoment(t), 600);
+}
+// Even iets in beeld bij het openen: vleermuizen vliegen voorbij, of sneeuw dwarrelt.
+function themaMoment(t) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || $(".themamoment")) return;
+  const vak = document.createElement("div");
+  vak.className = "themamoment";
+  vak.setAttribute("aria-hidden", "true");
+  if (t === "kerst") {
+    for (let i = 0; i < 16; i++) {
+      const v = document.createElement("i");
+      v.className = "val";
+      const maat = 8 + Math.random() * 8;
+      Object.assign(v.style, { left: `${Math.random() * 95}%`, width: `${maat}px`, height: `${maat}px`, animationDelay: `${Math.random() * 2.5}s`, animationDuration: `${5 + Math.random() * 3}s` });
+      vak.append(v);
+    }
+  } else {
+    for (const [vertraging, schaal, hoogte] of [[0, 1, 90], [0.9, 0.7, 130]]) {
+      const v = document.createElement("i");
+      v.className = "vlieg";
+      Object.assign(v.style, { animationDelay: `${vertraging}s`, top: `${hoogte}px`, scale: String(schaal) });
+      vak.append(v);
+    }
+  }
+  document.body.append(vak);
+  setTimeout(() => vak.remove(), 11000);
+}
+pasThemaToe(true);
 
 // ---------- tabbladen en modus ----------
 function toonTab(tab) {
@@ -1727,7 +1773,7 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-code").textContent = gezin;
   $("#i-versie").textContent = `Versie ${APP_VERSIE}`;
   for (const inp of $$("[data-aan]")) inp.checked = heeft(inp.dataset.aan);
-  $("#i-halloween").checked = document.body.classList.contains("halloween");
+  werkThemaKeuzeBij();
   $("#i-status").textContent = isGedeeld()
     ? "Gegevens en lopende timers worden gedeeld via Firebase en werken ook offline."
     : "Lokale modus: gegevens staan alleen op dit toestel.";
@@ -1757,11 +1803,22 @@ for (const inp of $$("[data-aan]")) {
   });
 }
 
-$("#i-halloween").addEventListener("change", (e) => {
-  ls.set("thema", e.target.checked ? "halloween" : "");
-  zetThema(e.target.checked);
-  renderOverzicht();
-});
+function werkThemaKeuzeBij() {
+  for (const b of $$(".themakeuze button")) b.classList.toggle("aan", b.dataset.thema === themaKeuze);
+  const nu = SEIZOENEN.find((s) => s.thema === seizoensThema());
+  $("#thema-uitleg").textContent = themaKeuze === "auto"
+    ? `Auto: ${SEIZOENEN.map((s) => `${s.naam.toLowerCase()} van ${s.uitleg}`).join(", ")}. Nu: ${nu ? nu.naam.toLowerCase() : "gewoon"}.`
+    : "Geldt voor deze telefoon.";
+}
+for (const b of $$(".themakeuze button")) {
+  b.addEventListener("click", () => {
+    themaKeuze = b.dataset.thema;
+    ls.set("themaKeuze", themaKeuze);
+    pasThemaToe(true);
+    werkThemaKeuzeBij();
+    renderOverzicht();
+  });
+}
 
 $("#i-deel").addEventListener("click", async () => {
   const url = koppelLink();
@@ -2014,6 +2071,7 @@ async function start() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return void (verborgenSinds = Date.now());
     if (moetHerladen) return herlaadVeilig();
+    pasThemaToe();
     // Terug in de app na een tijd weg: de verbinding kan stil zijn blijven hangen
     // (groen bolletje, maar geen nieuwe gegevens). Opnieuw verbinden haalt alles op.
     if (verborgenSinds && Date.now() - verborgenSinds > 20000) herverbind();
