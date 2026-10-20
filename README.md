@@ -8,7 +8,7 @@ In **Instellingen** zet je per telefoon aan wat jullie bijhouden: **Fles (kunstv
 
 ## Thema's
 
-In **Instellingen** onder **Thema** kies je **Gewoon**, **Auto**, **Halloween** of **Kerst**. Een thema geeft andere kleuren en versiert vaste plekken: een icoon bij de titel met een figuurtje erboven, iets in de hoek, iets dat aan de invoerkaart hangt, een figuurtje dat over de luierkaart en de kaart Gisteren kijkt, icoontjes bij Vandaag, Geschiedenis, Instellingen en de meldingen, een gekleurde streep boven de onderbalk en een versierd stukje grond onderaan de pagina. Bij het openen vliegen er vleermuizen voorbij of dwarrelt er even sneeuw.
+In **Instellingen** onder **Thema** kies je **Gewoon**, **Auto**, **Halloween** of **Kerst**. Standaard staat het op **Auto**. Een thema geeft andere kleuren en versiert vaste plekken: een icoon bij de titel met een figuurtje erboven, iets in de hoek, iets dat aan de invoerkaart hangt, een figuurtje dat over de luierkaart en de kaart Gisteren kijkt, icoontjes bij Vandaag, Geschiedenis, Instellingen en de meldingen, icoontjes en figuurtjes tussen de dagen in de geschiedenis en bij de grafieken, een gekleurde streep boven de onderbalk en een versierd stukje grond onderaan de pagina. Bij het openen of terugkomen in de app vliegen er fladderende vleermuizen voorbij of dwarrelt er even sneeuw.
 
 **Auto** kiest het thema op datum: Halloween van 10 oktober tot en met 1 november, kerst van 1 december tot en met 6 januari, daarbuiten gewoon. Het thema geldt per telefoon.
 

@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "31";
+const APP_VERSIE = "33";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -452,21 +452,27 @@ function seizoensThema(d = new Date()) {
   }
   return "";
 }
-// Wie het Halloween-thema al aan had, krijgt "Auto": nu Halloween, straks vanzelf kerst.
-let themaKeuze = ls.get("themaKeuze", ls.get("thema") === "halloween" ? "auto" : "gewoon");
+// Standaard "Auto": in het seizoen vanzelf Halloween of kerst. Wie zelf iets kiest, houdt dat.
+let themaKeuze = ls.get("themaKeuze", "auto");
 const actiefThema = () => (themaKeuze === "auto" ? seizoensThema() : themaKeuze === "gewoon" ? "" : themaKeuze);
 function pasThemaToe(metMoment = false) {
   const t = actiefThema();
   if ((document.body.dataset.thema || "") !== t) {
+    // Ander thema: het vorige moment opruimen, zodat het nieuwe meteen te zien is.
+    $(".themamoment")?.remove();
+    laatsteMoment = 0;
     if (t) document.body.dataset.thema = t;
     else delete document.body.dataset.thema;
   } else if (!metMoment) return;
   for (const m of $$('meta[name="theme-color"]')) m.content = STATUSBALK[t][m.media.includes("dark") ? 1 : 0];
-  if (t && metMoment) setTimeout(() => themaMoment(t), 600);
+  // Alleen als het thema intussen niet is gewisseld.
+  if (t && metMoment) setTimeout(() => document.body.dataset.thema === t && themaMoment(t), 600);
 }
 // Even iets in beeld bij het openen: vleermuizen vliegen voorbij, of sneeuw dwarrelt.
+let laatsteMoment = 0;
 function themaMoment(t) {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches || $(".themamoment")) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || $(".themamoment") || Date.now() - laatsteMoment < 15000) return;
+  laatsteMoment = Date.now();
   const vak = document.createElement("div");
   vak.className = "themamoment";
   vak.setAttribute("aria-hidden", "true");
@@ -482,6 +488,9 @@ function themaMoment(t) {
     for (const [vertraging, schaal, hoogte] of [[0, 1, 90], [0.9, 0.7, 130]]) {
       const v = document.createElement("i");
       v.className = "vlieg";
+      // Lijf met twee vleugels die klappen; de tweede vleermuis klapt net iets anders.
+      v.innerHTML = `<b class="vl"></b><b class="lijf"></b><b class="vl vr"></b>`;
+      for (const w of v.querySelectorAll(".vl")) w.style.animationDuration = `${0.24 + vertraging * 0.05}s`;
       Object.assign(v.style, { animationDelay: `${vertraging}s`, top: `${hoogte}px`, scale: String(schaal) });
       vak.append(v);
     }
@@ -498,6 +507,7 @@ function toonTab(tab) {
   $("#tab-overzicht").hidden = tab !== "overzicht";
   if (tab === "overzicht") renderOverzicht();
   window.scrollTo(0, 0);
+  if (document.body.dataset.thema) themaMoment(document.body.dataset.thema);
 }
 for (const b of $$(".tabbar button")) b.addEventListener("click", () => toonTab(b.dataset.tab));
 
@@ -2071,7 +2081,8 @@ async function start() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return void (verborgenSinds = Date.now());
     if (moetHerladen) return herlaadVeilig();
-    pasThemaToe();
+    // Terug in de app: thema bijwerken (de datum kan veranderd zijn) en even het moment tonen.
+    pasThemaToe(true);
     // Terug in de app na een tijd weg: de verbinding kan stil zijn blijven hangen
     // (groen bolletje, maar geen nieuwe gegevens). Opnieuw verbinden haalt alles op.
     if (verborgenSinds && Date.now() - verborgenSinds > 20000) herverbind();
