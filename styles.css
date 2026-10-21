@@ -477,7 +477,7 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 #wekker-status:empty { display: none; }
 #wekker-uitleg { margin: 6px 0 0; }
 #wekker-uitleg[hidden] { display: none; }
-#b-titel:focus { outline: none; }
+#b-titel:focus, #dlg-instellingen h2:focus { outline: none; }
 /* bewerkvenster: niets buiten beeld */
 .sheet form > * { min-width: 0; }
 .b-voeding, .b-kolven { display: grid; gap: 14px; }
