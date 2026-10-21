@@ -327,7 +327,8 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .blikvak.kolf b { color: var(--kolf); }
 .blikvak.borst b { color: var(--borst); }
 .blikvak small { font-size: 14px; color: var(--zacht); }
-.trend { font-weight: 700; font-size: 13px; color: var(--zacht); background: var(--kaart); border-radius: 999px; padding: 2px 8px; justify-self: start; }
+.trend { font-weight: 700; font-size: 13px; color: var(--zacht); background: var(--kaart); border: 0; border-radius: 999px; padding: 2px 8px; justify-self: start; font-family: inherit; }
+.trend:active { background: var(--lijn); }
 .trend.goed { color: var(--goed); }
 .trend.let { color: var(--let); }
 .trenduitleg { font-size: 12px; margin: 8px 0 0; }

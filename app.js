@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "39";
+const APP_VERSIE = "40";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -434,7 +434,7 @@ function toast(tekst, actieTekst, actie) {
   };
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), actie ? 6000 : 3000);
+  toastTimer = setTimeout(() => (el.hidden = true), actie ? 6000 : tekst.length > 80 ? 7000 : 3000);
 }
 
 // ---------- status ----------
@@ -1733,9 +1733,16 @@ function trendTekst(sleutel, eenheid, goedAls) {
   const richting = Math.abs(t.pct) < 5 ? "gelijk" : t.pct > 0 ? "op" : "af";
   const pijl = { op: "↑", af: "↓", gelijk: "→" }[richting];
   const kleur = richting === "gelijk" || !goedAls ? "" : richting === goedAls ? "goed" : "let";
-  const titel = `gem. ${Math.round(t.nu)} ${eenheid} per dag over de laatste ${t.w} volle dagen, daarvoor ${Math.round(t.toen)}`;
-  return `<span class="trend ${kleur}" title="${titel}">${pijl}${richting === "gelijk" ? "" : ` ${Math.abs(t.pct)}%`}</span>`;
+  const namen = { kunst: "Kunstvoeding", flessen: "Flessen", kolf: "Gekolfd", borst: "Borstvoeding", slaapUur: "Slaap" };
+  const fmt = (v) => (eenheid === "uur" ? duurTekst(v * 36e5) : `${Math.round(v)} ${eenheid}`);
+  const uitleg = `${namen[sleutel] || sleutel}: gemiddeld ${fmt(t.nu)} per dag over de laatste ${t.w} volle dagen, tegenover ${fmt(t.toen)} per dag in de ${t.w} dagen daarvoor. Vandaag en half bijgehouden dagen tellen niet mee.`;
+  return `<button type="button" class="trend ${kleur}" data-uitleg="${esc(uitleg)}" aria-label="Trend: ${esc(uitleg)}">${pijl}${richting === "gelijk" ? "" : ` ${Math.abs(t.pct)}%`}</button>`;
 }
+// Tik op een pijltje: de uitleg met de getallen.
+$("#gisteren").addEventListener("click", (e) => {
+  const chip = e.target.closest(".trend[data-uitleg]");
+  if (chip) toast(chip.dataset.uitleg);
+});
 
 function renderGisteren() {
   const gist = plusDagen(dagStart(Date.now()), -1);
@@ -1785,7 +1792,7 @@ function renderGisteren() {
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
     <div class="blik">${vakken.join("")}</div>
-    ${trendGetoond ? `<p class="klein-grijs trenduitleg">Pijlen: de laatste 7 volle dagen tegenover de 7 dagen ervoor.</p>` : ""}`;
+    ${trendGetoond ? `<p class="klein-grijs trenduitleg">Pijlen: gemiddelde per dag van de laatste week tegenover de week ervoor. Tik op een pijltje voor de getallen.</p>` : ""}`;
 }
 
 // Tijd tussen voedingen: per dag (of week) de gemiddelde pauze als stip, met een streep van de
