@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "36";
+const APP_VERSIE = "37";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -510,13 +510,16 @@ const SEIZOENEN = [
   { thema: "zomer", naam: "Zomer", van: [6, 21], tot: [8, 31], uitleg: "21 juni tot en met 31 augustus" },
   // Herfst vult de gaten rond Halloween en Sinterklaas (die gaan voor).
   { thema: "herfst", naam: "Herfst", van: [9, 21], tot: [12, 5], uitleg: "21 september tot en met 5 december, buiten Halloween en Sinterklaas" },
+  { thema: "lente", naam: "Lente", van: [3, 21], tot: [6, 20], uitleg: "21 maart tot en met 20 juni, buiten Pasen" },
+  { thema: "winter", naam: "Winter", van: [12, 21], tot: [3, 20], uitleg: "21 december tot en met 20 maart, buiten kerst" },
 ];
 const STATUSBALK = {
   "": ["#fbf7f4", "#1a1716"], halloween: ["#fbf0e4", "#16111b"], kerst: ["#f6f3ec", "#0f1a16"], sinterklaas: ["#fdf2f2", "#1c1214"],
   pasen: ["#f7fbef", "#141a10"], zomer: ["#f3f9fc", "#0f1a20"], verjaardag: ["#fbf3f8", "#1c1220"], herfst: ["#faf4ec", "#1a1410"],
+  lente: ["#f4fbf2", "#101a12"], winter: ["#f1f6fb", "#0e1620"],
 };
 // Welk moment hoort bij het thema: iets dat voorbijvliegt (met klappende vleugels) of iets dat valt.
-const MOMENT = { halloween: "vlieg", kerst: "val", sinterklaas: "val", pasen: "val", zomer: "vlieg", verjaardag: "val", herfst: "val" };
+const MOMENT = { halloween: "vlieg", kerst: "val", sinterklaas: "val", pasen: "val", zomer: "vlieg", verjaardag: "val", herfst: "val", lente: "vlieg", winter: "val" };
 function seizoensThema(d = new Date()) {
   // Verjaardag van het kind (vanaf 1 jaar) gaat voor.
   const j = verjaardagVandaag();
