@@ -529,7 +529,9 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 body.zonder-fles [data-deel~="fles"],
 body.zonder-kolven [data-deel~="kolven"],
 body.zonder-borst [data-deel~="borst"],
-body.zonder-luiers [data-deel~="luiers"] { display: none !important; }
+body.zonder-luiers [data-deel~="luiers"],
+body.zonder-slaap [data-deel~="slaap"],
+body.zonder-hapjes [data-deel~="hapjes"] { display: none !important; }
 .onderdelen { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 4px; min-width: 0; }
 .onderdelen legend { font-weight: 700; font-size: 16px; padding: 0; margin-bottom: 4px; color: var(--tekst); }
 .schakel { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 16px; }
