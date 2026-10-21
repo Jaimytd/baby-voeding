@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "38";
+const APP_VERSIE = "39";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1724,16 +1724,17 @@ function trend(sleutel) {
   return { w, nu, toen, pct: toen ? Math.round(((nu - toen) / toen) * 100) : nu ? 100 : 0 };
 }
 
+// Trend als klein chipje: een pijl met het percentage. De uitleg staat één keer onder de kaart.
+let trendGetoond = false;
 function trendTekst(sleutel, eenheid, goedAls) {
   const t = trend(sleutel);
-  if (!t) return `<span class="trend">Nog te weinig dagen voor een trend</span>`;
+  if (!t) return "";
+  trendGetoond = true;
   const richting = Math.abs(t.pct) < 5 ? "gelijk" : t.pct > 0 ? "op" : "af";
   const pijl = { op: "↑", af: "↓", gelijk: "→" }[richting];
-  const woord = { op: "neemt toe", af: "neemt af", gelijk: "blijft gelijk" }[richting];
   const kleur = richting === "gelijk" || !goedAls ? "" : richting === goedAls ? "goed" : "let";
-  const pct = richting === "gelijk" ? "" : ` (${t.pct > 0 ? "+" : ""}${t.pct}%)`;
-  return `<span class="trend ${kleur}">${pijl} ${woord}${pct}</span>
-    <span class="trenduitleg">gem. ${Math.round(t.nu)} ${eenheid}/dag over de laatste ${t.w} volle dagen, daarvoor ${Math.round(t.toen)}</span>`;
+  const titel = `gem. ${Math.round(t.nu)} ${eenheid} per dag over de laatste ${t.w} volle dagen, daarvoor ${Math.round(t.toen)}`;
+  return `<span class="trend ${kleur}" title="${titel}">${pijl}${richting === "gelijk" ? "" : ` ${Math.abs(t.pct)}%`}</span>`;
 }
 
 function renderGisteren() {
@@ -1747,24 +1748,33 @@ function renderGisteren() {
     return;
   }
   const vakken = [];
+  const tegels = [];
+  const tegel = (getal, label, detail, chip = "", kleur = "") => `<div class="tegel ${kleur}"><b>${getal}${chip}</b><span>${label}</span>${detail ? `<small>${detail}</small>` : ""}</div>`;
+  trendGetoond = false;
   if (heeft("fles")) {
+    // Vier tegels: hoeveel, hoe vaak, hoe lang ertussen, langste pauze. Eén getal per tegel.
     const p = pauzeStats(pauzesIn(gist, plusDagen(gist, 1)));
     const flesMl = t.kunst + t.fles;
-    vakken.push(`<div class="blikvak fles"><span>Flessen</span><b>${t.flessen} keer</b>
-      <small>${t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml per fles` : "geen fles gegeven"}</small>
-      ${p ? `<small>Tussen voedingen gem. ${duurTekst(p.gem)}, kortste ${duurTekst(p.min.duur)}, langste ${duurTekst(p.max.duur)} (${uurMin(p.max.van)} tot ${uurMin(p.max.tot)})</small>` : ""}${trendTekst("flessen", "keer", null)}</div>`);
+    tegels.push(
+      tegel(`${t.kunst} ml`, "kunstvoeding", heeft("kolven") && t.fles ? `+ ${t.fles} ml moedermelk` : "", trendTekst("kunst", "ml", null), "kunst"),
+      tegel(t.flessen, t.flessen === 1 ? "fles" : "flessen", t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml` : "", trendTekst("flessen", "keer", null)),
+      p ? tegel(duurTekst(p.gem), "tussen flessen", `kortste ${duurTekst(p.min.duur)}`) : "",
+      p ? tegel(duurTekst(p.max.duur), "langste pauze", `${uurMin(p.max.van)} tot ${uurMin(p.max.tot)}`) : "",
+    );
     // Vitamine K-richtlijn geldt alleen als de baby ook moedermelk krijgt.
-    const metMoedermelk = heeft("borst") || heeft("kolven");
-    const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
-    const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
-    const vitk = metMoedermelk
-      ? `<small>${t.kunst >= VITK_ML ? `${VITK_ML} ml of meer` : `onder de ${VITK_ML} ml-grens`}${week.length ? `; ${onder} van de laatste ${week.length} dagen onder ${VITK_ML} ml` : ""} (vitamine K)</small>`
-      : "";
-    vakken.push(`<div class="blikvak kunst"><span>Kunstvoeding</span><b>${t.kunst} ml</b>${vitk}${trendTekst("kunst", "ml", null)}</div>`);
+    if (heeft("borst") || heeft("kolven")) {
+      const week = dagreeks(8).filter((x) => x.actief && !x.lopend);
+      const onder = week.filter((x) => x.t.kunst < VITK_ML).length;
+      vakken.push(`<p class="vitk">Vitamine K-grens ${VITK_ML} ml: gisteren ${t.kunst >= VITK_ML ? "erboven" : "eronder"}${week.length ? `, ${onder} van de laatste ${week.length} dagen eronder` : ""}.</p>`);
+    }
   }
   if (heeft("luiers")) {
-    vakken.push(`<div class="blikvak luiers"><span>Luiers</span><b>${t.luiers}</b><small>${t.nat} nat · ${t.poep} poep${t.droog ? ` · ${t.droog} droog` : ""}</small></div>`);
+    tegels.push(tegel(t.luiers, t.luiers === 1 ? "luier" : "luiers", t.luiers ? `${t.nat} nat · ${t.poep} poep${t.droog ? ` · ${t.droog} droog` : ""}` : "", "", "luier"));
   }
+  if (heeft("slaap") && t.dutjes) {
+    tegels.push(tegel(duurTekst(t.slaapMin * 60000), "slaap", `${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}`, trendTekst("slaapUur", "uur", "op"), "slaap"));
+  }
+  if (tegels.length) vakken.unshift(`<div class="bliktegels">${tegels.join("")}</div>`);
   if (heeft("kolven")) {
     vakken.push(`<div class="blikvak kolf"><span>Gekolfd</span><b>${t.kolf} ml</b><small>L ${t.kolfL} · R ${t.kolfR} ml · ${t.kolfsessies} keer</small>${trendTekst("kolf", "ml", "op")}</div>`);
     if (heeft("fles")) vakken.push(`<div class="blikvak samen"><span>Kunstvoeding + gekolfd samen</span><b>${t.samen} ml</b></div>`);
@@ -1772,12 +1782,10 @@ function renderGisteren() {
   if (heeft("borst")) {
     vakken.push(`<div class="blikvak borst"><span>Borstvoeding</span><b>${t.borst} min</b><small>L ${t.L} · R ${t.R} min · ${t.borstKeer} keer</small>${trendTekst("borst", "min", "op")}</div>`);
   }
-  if (heeft("slaap") && t.dutjes) {
-    vakken.push(`<div class="blikvak slaap"><span>Slaap</span><b>${duurTekst(t.slaapMin * 60000)}</b><small>${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}</small>${trendTekst("slaapUur", "uur", "op")}</div>`);
-  }
   $("#gisteren").innerHTML = `
     <h2>Gisteren <span class="klein-grijs">${datum}</span></h2>
-    <div class="blik">${vakken.join("")}</div>`;
+    <div class="blik">${vakken.join("")}</div>
+    ${trendGetoond ? `<p class="klein-grijs trenduitleg">Pijlen: de laatste 7 volle dagen tegenover de 7 dagen ervoor.</p>` : ""}`;
 }
 
 // Tijd tussen voedingen: per dag (of week) de gemiddelde pauze als stip, met een streep van de

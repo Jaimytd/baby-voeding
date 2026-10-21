@@ -327,10 +327,23 @@ input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-app
 .blikvak.kolf b { color: var(--kolf); }
 .blikvak.borst b { color: var(--borst); }
 .blikvak small { font-size: 14px; color: var(--zacht); }
-.trend { font-weight: 700; font-size: 15px; margin-top: 4px; color: var(--zacht); }
+.trend { font-weight: 700; font-size: 13px; color: var(--zacht); background: var(--kaart); border-radius: 999px; padding: 2px 8px; justify-self: start; }
 .trend.goed { color: var(--goed); }
 .trend.let { color: var(--let); }
-.trenduitleg { font-size: 12px; color: var(--zacht); }
+.trenduitleg { font-size: 12px; margin: 8px 0 0; }
+/* gisteren: tegels met één getal per tegel */
+.bliktegels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tegel { background: var(--veld); border-radius: 12px; padding: 12px 12px 10px; display: grid; gap: 1px; align-content: start; min-width: 0; }
+.tegel b { font-size: 24px; line-height: 1.1; white-space: nowrap; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
+.tegel.kunst b { color: var(--kunst); }
+.tegel.luier b { color: var(--luier); }
+.tegel.slaap b { color: var(--slaap); }
+.tegel > span { font-size: 13px; color: var(--zacht); }
+.tegel small { font-size: 12px; color: var(--zacht); }
+.tegel .trend { padding: 1px 7px; font-size: 12px; }
+.vitk { margin: 0; font-size: 13px; color: var(--zacht); padding: 0 2px; }
+.blikvak { position: relative; }
+.blikvak .trend { position: absolute; top: 10px; right: 10px; margin: 0; }
 .periode { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 12px; padding: 4px; border-radius: 14px; }
 .periode button.aan { background: var(--kaart); color: var(--tekst); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
 .grafiekkop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
