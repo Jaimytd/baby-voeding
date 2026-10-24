@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "40";
+const APP_VERSIE = "41";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -84,7 +84,7 @@ function geledenTekst(t) {
   const u = Math.floor(min / 60);
   const m = min % 60;
   if (!u) return `${m} min geleden`;
-  return `${u} u ${pad(m)} min geleden`;
+  return `${u} u ${pad(m)} geleden`;
 }
 
 function onderdelen(v) {
@@ -1543,11 +1543,21 @@ function renderLaatste() {
   // Hoe vaak: gemiddelde tijd tussen de voedingen van de afgelopen 24 uur.
   const pozen = tussenpozen(voedmomenten(alleenVoeding.filter((v) => v.tijd >= Date.now() - DAG)));
   const gem = pozen.length ? pozen.reduce((s, p) => s + p.duur, 0) / pozen.length : 0;
-  // Volgende fles: laatste voeding plus het gemiddelde, zolang die nog niet voorbij is.
-  const volgende = laatste && gem && laatste.tijd + gem > Date.now() - 30 * 60000 ? laatste.tijd + gem : 0;
   $("#laatste-ritme").textContent = pozen.length
-    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(gem)}${volgende ? ` · volgende rond ${uurMin(volgende)}` : ""}`
+    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(gem)}`
     : "";
+  // Verwachte volgende voeding: laatste voeding plus het gemiddelde, min een kwartier (een
+  // voeding wordt meestal een kwartier na het begin geregistreerd). Tot 2 uur erna zichtbaar.
+  const VOORSPRONG = 15 * 60000;
+  const volgende = laatste && pozen.length >= 2 && gem > 45 * 60000 && MODI.some(modusAan) ? laatste.tijd + gem - VOORSPRONG : 0;
+  const vak = $("#volgende");
+  vak.hidden = !volgende || volgende < Date.now() - 2 * 36e5;
+  if (!vak.hidden) {
+    const over = volgende - Date.now();
+    $("b", vak).textContent = uurMin(volgende);
+    $("span", vak).textContent = over > 60000 ? `verwacht, over ${duurTekst(over)}` : over > -60000 ? "verwacht, nu" : `verwacht, ${duurTekst(-over)} over tijd`;
+    vak.classList.toggle("nu", over <= 60000);
+  }
   renderKind();
   if (!MODI.some(modusAan)) {
     // Alleen luiers bijhouden: bovenaan de laatste luier.

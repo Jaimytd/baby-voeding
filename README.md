@@ -19,7 +19,7 @@ In **Instellingen** vul je de naam en geboortedatum in (gedeeld met de andere te
 
 ## Handig
 
-- **Volgende fles:** bovenaan staat op basis van het ritme van de afgelopen 24 uur wanneer de volgende fles ongeveer is.
+- **Verwachte volgende voeding:** bovenaan, rechts naast "geleden", staat de verwachte tijd van de volgende voeding: de laatste voeding plus de gemiddelde tussentijd van de afgelopen 24 uur, min een kwartier (een voeding wordt meestal een kwartier na het begin geregistreerd). Eronder staat hoe lang het nog duurt, of hoeveel ze over tijd is.
 - **Wie deed wat:** in het overzicht per persoon de flessen, nachtflessen, luiers en slaapjes, met een kroontje voor de nachtkoning.
 - **Weekkaart:** één plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.
 - **Nachtstand:** tussen 22 en 7 uur is de app donker en rustig, met grotere knoppen bij luier en slaap. Uit te zetten in Instellingen.
