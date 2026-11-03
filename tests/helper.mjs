@@ -68,3 +68,5 @@ export const op = (datum, uur, minuut = 0) => {
   const utc = Date.UTC(j, m - 1, d, uur, minuut);
   return utc - tzVerschil(utc);
 };
+export const zetKind = (gezin, kind, geboortedatum) =>
+  fetch(REST() + gezin + "/status/gezin", { method: "PATCH", headers: { "content-type": "application/json", authorization: "Bearer owner" }, body: JSON.stringify({ fields: { kind: T(kind), geboortedatum: T(geboortedatum), door: T("test") } }) });

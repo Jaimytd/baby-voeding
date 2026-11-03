@@ -63,5 +63,18 @@ await p.waitForTimeout(400);
 ok("opgeslagen op zo 1 nov 09:30", /zo 1 nov/.test(await tekst(p, "#geschiedenis")) && /09:30/.test(await tekst(p, "#geschiedenis")), (await tekst(p, "#geschiedenis")).slice(0, 160));
 if (process.env.SHOT_DIR) { await p.click(".iregel.fles >> nth=0"); await p.screenshot({ path: process.env.SHOT_DIR + "/st-bewerk.png" }); await p.keyboard.press("Escape"); }
 
+// Met een thema: naam en leeftijd op een labeltje over de versiering.
+await ctx.close();
+const { zetKind } = await import("./helper.mjs");
+await zetKind(G2, "Noor", "2026-08-15");
+({ p, ctx } = await telefoon(b, { gezin: G2, datum: `${D}T12:00:00+01:00`, opslag: { onderdelen: { borst: false, kolven: false }, themaKeuze: "kerst" }, fouten }));
+await p.waitForTimeout(500);
+const label = await p.$eval("#leeftijd", (e) => { const s = getComputedStyle(e); return { tekst: e.textContent, bg: s.backgroundColor, radius: s.borderRadius, rechts: Math.round(e.getBoundingClientRect().right) }; });
+ok("naam en leeftijd op een labeltje (thema)", label.tekst === "Noor · 11 weken" && label.bg !== "rgba(0, 0, 0, 0)" && label.radius === "999px" && label.rechts <= 390, JSON.stringify(label));
+await ctx.close();
+({ p, ctx } = await telefoon(b, { gezin: G2, datum: `${D}T12:00:00+01:00`, opslag: { onderdelen: { borst: false, kolven: false } }, fouten }));
+await p.waitForTimeout(500);
+ok("zonder thema gewone tekst", (await p.$eval("#leeftijd", (e) => getComputedStyle(e).backgroundColor)) === "rgba(0, 0, 0, 0)");
+
 ok("geen JS-fouten", fouten.length === 0, fouten.join(" | "));
 await eind(b);
