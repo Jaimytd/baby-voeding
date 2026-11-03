@@ -20,7 +20,7 @@ In **Instellingen** vul je de naam en geboortedatum in (gedeeld met de andere te
 ## Handig
 
 - **Streefwaarden:** in Instellingen vul je in waar jullie naartoe werken, bijvoorbeeld 4 uur tussen de flessen en 175 ml per fles (de standaard). Dat staat subtiel bij de cijfers: als "streef" bij Gisteren (groen zodra het gehaald is), als dun stippellijntje in de grafieken "Tijd tussen voedingen" en "Per fles", bij het ritme bovenaan, en de snelkeuze die gelijk is aan het streefdoel heeft een stipje.
-- **Verwachte volgende voeding:** bovenaan, rechts naast "geleden", staat de verwachte tijd van de volgende voeding: de laatste voeding plus de gemiddelde tussentijd van de afgelopen 24 uur, min een kwartier (een voeding wordt meestal een kwartier na het begin geregistreerd). Eronder staat hoe lang het nog duurt, of hoeveel ze over tijd is.
+- **Vooruitkijken:** onder de laatste voeding staan drie cellen: **verwacht** (de laatste voeding plus de gemiddelde tussentijd van de afgelopen 24 uur), **bij 4 u** (de laatste voeding plus het streefdoel) en **gemiddeld** (de tussentijd tegenover het streefdoel). Beide tijden min een kwartier, want een voeding wordt meestal een kwartier na het begin geregistreerd. Een tijd die voorbij is, kleurt oranje; een gemiddelde dat het streefdoel haalt, groen.
 - **Wie deed wat:** in het overzicht per persoon de flessen, nachtflessen, luiers en slaapjes, met een kroontje voor de nachtkoning.
 - **Weekkaart:** één plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.
 - **Nachtstand:** tussen 22 en 7 uur is de app donker en rustig, met grotere knoppen bij luier en slaap. Uit te zetten in Instellingen.
@@ -43,7 +43,7 @@ Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd ond
 - **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
 - **Luier:** één tik op **Nat**, **Poep**, **Beide** of **Droog**. Ernaast staat wanneer de laatste luier was.
 
-Bovenaan staat hoe lang de laatste voeding geleden is en hoe vaak er de afgelopen 24 uur gevoed is, met de gemiddelde tijd ertussen. Onder **Vandaag** staan de tijden van elke voeding en luier. Borst en fles binnen 45 minuten tellen samen als één voeding.
+Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan de tijden van elke voeding en luier. Borst en fles binnen 45 minuten tellen samen als één voeding.
 
 De lopende timers zijn gedeeld: start Aisha links, dan ziet Jaimy hem ook lopen. Bovenaan staat dan "Nu bezig". Per ongeluk gestart? Tik op **Wissen**. Na opslaan kun je 6 seconden **Ongedaan maken**.
 

@@ -19,7 +19,7 @@ const chips = await p.$$eval('.soort[data-soort=kunst] .chips .pil', (x) => x.ma
 ok("snelkeuzes 35, 70, 105, 140, 175 met 175 als streef", chips.join(",") === "35,70,105,140,175*", chips.join(","));
 
 // Ritme-regel toont streef.
-ok("ritme-regel toont streef 4 u", /gemiddeld elke \d u \d\d · streef 4 u$/.test(await tekst(p, "#laatste-ritme")), await tekst(p, "#laatste-ritme"));
+ok("bovenaan: gemiddeld met streef 4 u", (await tekst(p, "#v-gem small")) === "streef 4 u", await tekst(p, "#v-gem"));
 
 // Gisteren: streef bij de tegels, nog niet gehaald.
 await p.click(".tabbar [data-tab=overzicht]");
@@ -53,10 +53,10 @@ await p.click(".tabbar [data-tab=registreren]");
 
 // Bewerken: tijd groot, datum klein, knoppen onder elkaar.
 await p.click(".iregel.fles >> nth=0");
-ok("bewerken: tijdveld (type time) met 11:00", (await p.getAttribute("#b-tijd", "type")) === "time" && (await p.inputValue("#b-tijd")) === "11:00");
+ok("bewerken: tijdveld (type time) met 11:00", (await p.getAttribute("#b-tijd", "type")) === "time" && (await p.inputValue("#b-tijd")) === "11:00", await p.inputValue("#b-tijd"));
 ok("bewerken: datumveld met vandaag", (await p.getAttribute("#b-datum", "type")) === "date" && (await p.inputValue("#b-datum")) === D);
-const tijdH = await p.$eval("#b-tijd", (e) => e.getBoundingClientRect().height);
-const datumH = await p.$eval("#b-datum", (e) => e.getBoundingClientRect().height);
+const tijdH = await p.$eval("#b-tijd-tekst", (e) => e.closest(".kiezer").getBoundingClientRect().height);
+const datumH = await p.$eval("#b-datum-tekst", (e) => e.closest(".kiezer").getBoundingClientRect().height);
 ok("tijdveld groter dan datumveld", tijdH > datumH, `${tijdH} vs ${datumH}`);
 const knoppen = await p.$$eval("#form-bewerk .knoppen button", (x) => x.filter((b) => b.getClientRects().length).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) }; }));
 const overlap = knoppen.some((a, i) => knoppen.some((c, j) => i !== j && a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom));

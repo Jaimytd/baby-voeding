@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "42";
+const APP_VERSIE = "43";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1464,7 +1464,7 @@ $("#groei").addEventListener("click", (e) => {
   if (!e.target.closest("#meting-toevoegen")) return;
   $("#m-gewicht").value = "";
   $("#m-lengte").value = "";
-  $("#m-datum").value = new Date().toISOString().slice(0, 10);
+  zetKiezer("m-datum", naarDatum(Date.now()));
   dlgMeting.showModal();
 });
 dlgMeting.addEventListener("close", () => {
@@ -1553,27 +1553,38 @@ function renderLaatste() {
   // Hoe vaak: gemiddelde tijd tussen de voedingen van de afgelopen 24 uur.
   const pozen = tussenpozen(voedmomenten(alleenVoeding.filter((v) => v.tijd >= Date.now() - DAG)));
   const gem = pozen.length ? pozen.reduce((s, p) => s + p.duur, 0) / pozen.length : 0;
-  $("#laatste-ritme").textContent = pozen.length
-    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(gem)}${heeft("fles") ? ` · streef ${streefTekst()}` : ""}`
-    : "";
-  // Verwachte volgende voeding: laatste voeding plus het gemiddelde, min een kwartier (een
-  // voeding wordt meestal een kwartier na het begin geregistreerd). Tot 2 uur erna zichtbaar.
+  // Vooruitkijken, drie vaste cellen: verwacht (op het gemiddelde), bij het streefdoel, en het
+  // gemiddelde zelf. Beide tijden min een kwartier: een voeding wordt meestal een kwartier na
+  // het begin geregistreerd. Alleen als de laatste voeding minder dan een dag geleden is.
   const VOORSPRONG = 15 * 60000;
-  const volgende = laatste && pozen.length >= 2 && gem > 45 * 60000 && MODI.some(modusAan) ? laatste.tijd + gem - VOORSPRONG : 0;
-  const vak = $("#volgende");
-  vak.hidden = !volgende || volgende < Date.now() - 2 * 36e5;
-  if (!vak.hidden) {
-    const over = volgende - Date.now();
-    $("b", vak).textContent = uurMin(volgende);
-    $("span", vak).textContent = over > 60000 ? `verwacht, over ${duurTekst(over)}` : over > -60000 ? "verwacht, nu" : `verwacht, ${duurTekst(-over)} over tijd`;
-    vak.classList.toggle("nu", over <= 60000);
+  const rij = $("#vooruit");
+  const vers = laatste && Date.now() - laatste.tijd < DAG && MODI.some(modusAan);
+  rij.hidden = !vers;
+  if (vers) {
+    const relatief = (t) => { const d = t - Date.now(); return d > 60000 ? `over ${duurTekst(d)}` : d > -60000 ? "nu" : `${duurTekst(-d)} geleden`; };
+    const cel = (id, tijd, label, detail, toon) => {
+      const el = $(id);
+      el.hidden = !toon;
+      if (!toon) return;
+      $("b", el).textContent = tijd;
+      if (label != null) $("span", el).textContent = label;
+      $("small", el).textContent = detail;
+    };
+    const verwacht = pozen.length >= 2 && gem > 45 * 60000 ? laatste.tijd + gem - VOORSPRONG : 0;
+    cel("#v-verwacht", verwacht ? uurMin(verwacht) : "", null, verwacht ? relatief(verwacht) : "", Boolean(verwacht));
+    $("#v-verwacht").classList.toggle("voorbij", Boolean(verwacht) && verwacht < Date.now() - 60000);
+    const bijStreef = laatste.tijd + streefUur() * 36e5 - VOORSPRONG;
+    cel("#v-streef", uurMin(bijStreef), `bij ${streefTekst()}`, relatief(bijStreef), heeft("fles"));
+    $("#v-streef").classList.toggle("voorbij", bijStreef < Date.now() - 60000);
+    cel("#v-gem", gem ? duurTekst(gem) : "", null, heeft("fles") ? `streef ${streefTekst()}` : `${pozen.length + 1} keer in 24 u`, gem > 0);
+    $("#v-gem").classList.toggle("gehaald", heeft("fles") && gem >= streefUur() * 36e5);
   }
   renderKind();
   if (!MODI.some(modusAan)) {
     // Alleen luiers bijhouden: bovenaan de laatste luier.
     $("#laatste-sinds").textContent = ll ? geledenTekst(ll.tijd) : "Nog niets geregistreerd";
     $("#laatste-detail").textContent = ll ? `om ${uurMin(ll.tijd)} · ${luierTekst(ll)}` : "";
-    $("#laatste-ritme").textContent = "";
+    $("#vooruit").hidden = true;
     $("#laatste-kant").hidden = true;
     return;
   }
@@ -2173,6 +2184,25 @@ function renderAlles() {
   toonFeest();
 }
 
+// ---------- tijd- en datumkiezers met eigen opmaak ----------
+// De native kiezer ligt onzichtbaar over de tekst, zodat tikken gewoon de klok of kalender
+// opent, maar de weergave op elke telefoon hetzelfde is (24 uur, "di 3 nov").
+const datumTekst = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }) : "");
+for (const [id, fmt, leeg] of [["b-tijd", (v) => v, ""], ["b-wakker", (v) => v, "Slaapt nog"], ["b-datum", datumTekst, ""], ["m-datum", datumTekst, ""]]) {
+  const inp = $("#" + id);
+  const uit = $(`#${id}-tekst`);
+  const toon = () => {
+    uit.textContent = inp.value ? fmt(inp.value) : leeg;
+    uit.classList.toggle("leeg", !inp.value);
+  };
+  inp.addEventListener("input", toon);
+  inp.addEventListener("change", toon);
+  // Ook bijwerken als de waarde door de app gezet wordt.
+  new MutationObserver(toon).observe(inp, { attributes: true, attributeFilter: ["value"] });
+  inp.toon = toon;
+}
+const zetKiezer = (id, waarde) => { const inp = $("#" + id); inp.value = waarde; inp.toon?.(); };
+
 // ---------- bewerken ----------
 const dlgBewerk = $("#dlg-bewerk");
 let bewerkId = null;
@@ -2188,7 +2218,7 @@ function openBewerk(id) {
   $("#b-poep").checked = Boolean(v.poep);
   $("#b-opmerking").value = v.opmerking || "";
   $(".b-slaap", dlgBewerk).hidden = !isSlaap(v);
-  $("#b-wakker").value = v.eind ? uurMin(v.eind) : "";
+  zetKiezer("b-wakker", v.eind ? uurMin(v.eind) : "");
   $(".b-meting", dlgBewerk).hidden = !isMeting(v);
   $("#b-gewicht").value = v.gewicht || "";
   $("#b-lengte").value = v.lengte ? (v.lengte / 10).toFixed(1) : "";
@@ -2198,11 +2228,11 @@ function openBewerk(id) {
   $("#b-tijdlabel").textContent = isSlaap(v) ? "In slaap om" : "Tijd";
   // Bij een meting doet de tijd er niet toe: alleen de datum.
   $("#b-tijd").closest("label").hidden = isMeting(v);
-  $("#b-datum").value = naarDatum(v.tijd);
+  zetKiezer("b-datum", naarDatum(v.tijd));
   $("#b-titel").textContent = luier ? "Luier aanpassen" : kolven ? "Kolven aanpassen" : isSlaap(v) ? "Slaap aanpassen" : isMeting(v) ? "Meting aanpassen" : isHapje(v) ? "Hapje aanpassen" : "Voeding aanpassen";
   $(".b-voeding", dlgBewerk).hidden = !isVoeding(v);
   $(".b-kolven", dlgBewerk).hidden = !kolven;
-  $("#b-tijd").value = uurMin(v.tijd);
+  zetKiezer("b-tijd", uurMin(v.tijd));
   $("#b-links").value = getal(v.borstL) || "";
   $("#b-rechts").value = getal(v.borstR) || "";
   $("#b-kolf").value = getal(v.kolf) || "";

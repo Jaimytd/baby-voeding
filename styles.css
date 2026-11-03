@@ -102,13 +102,21 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px; }
 .laatste { padding: 8px 4px 16px; }
 .laatste .label { color: var(--zacht); font-size: 14px; }
 .laatste .sinds { font-size: 28px; font-weight: 700; line-height: 1.2; }
-/* geleden links, verwachte volgende voeding rechts op dezelfde regel */
-.sindsrij { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.volgende { text-align: right; flex: none; display: grid; line-height: 1.15; }
-.volgende b { font-size: 22px; font-weight: 700; color: var(--primair); font-variant-numeric: tabular-nums; }
-.volgende span { font-size: 12px; color: var(--zacht); max-width: 10em; justify-self: end; }
-.sindsrij .sinds { white-space: nowrap; }
-.volgende.nu b { color: var(--let); }
+/* vooruitkijken: drie gelijke cellen, elk groot getal, woord, detail */
+.vooruit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.vcel { display: grid; gap: 1px; padding: 8px 0 8px 10px; border-left: 3px solid var(--lijn); line-height: 1.2; min-width: 0; }
+.vcel b { font-size: 20px; font-weight: 700; color: var(--primair); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vcel span { font-size: 13px; color: var(--tekst); }
+.vcel small { font-size: 12px; color: var(--zacht); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vcel.voorbij b, .vcel.voorbij small { color: var(--let); }
+.vcel.gehaald b { color: var(--goed); }
+.vcel[hidden] { display: none; }
+/* tijd- en datumkiezer: eigen tekst, native invoer onzichtbaar eroverheen */
+.kiezer { position: relative; display: flex; align-items: center; min-height: 48px; border: 1px solid var(--lijn); border-radius: 12px; padding: 0 12px; background: var(--veld); color: var(--tekst); font-size: 16px; }
+.kiezer.groot { min-height: 56px; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kiezer output.leeg { color: var(--zacht); font-weight: 500; font-size: 16px; }
+.kiezer input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: 0; }
+.kiezer:focus-within { outline: 2px solid var(--primair); outline-offset: 1px; }
 .laatste .detail { color: var(--zacht); font-size: 15px; margin-top: 2px; }
 
 .kaart {
@@ -881,12 +889,11 @@ body.nacht img, body.nacht svg { filter: brightness(.92); }
 .themakeuze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
 
 /* bewerken: de tijd groot, de datum klein ernaast */
-.tijddatum { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: end; }
+.tijddatum { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: start; }
 .veld input[type="time"], .veld input[type="date"] {
   min-height: 48px; border: 1px solid var(--lijn); border-radius: 12px; padding: 0 12px; background: var(--veld); color: var(--tekst); font: inherit; width: 100%;
 }
-.veld input.tijdgroot { font-size: 24px; font-weight: 700; min-height: 56px; font-variant-numeric: tabular-nums; }
-.veld.datumklein input { font-size: 14px; color: var(--zacht); }
+.veld.datumklein .kiezer { font-size: 15px; color: var(--zacht); }
 .veld.datumklein { font-size: 13px; }
 /* streefwaarden */
 .pil.streef { box-shadow: inset 0 0 0 2px var(--kunst-bg); }
@@ -897,3 +904,4 @@ body.nacht img, body.nacht svg { filter: brightness(.92); }
 .grafiek .streeflijn { stroke: var(--goed); stroke-width: 1.2; stroke-dasharray: 2 4; opacity: .9; }
 .grafiek .streeflabel { font-size: 9px; fill: var(--goed); font-weight: 700; }
 .legenda i.streep.streef { border-top: 2px dotted var(--goed); }
+body.nacht .vcel b { font-size: 22px; }

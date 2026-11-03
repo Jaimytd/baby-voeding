@@ -38,12 +38,13 @@
       </div>
       <section class="laatste" aria-live="polite">
         <div class="label"><span class="labeltekst">Laatste voeding</span><span id="leeftijd"></span></div>
-        <div class="sindsrij">
-          <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
-          <div id="volgende" class="volgende" hidden><b></b><span>verwacht</span></div>
-        </div>
+        <div id="laatste-sinds" class="sinds">Nog niets geregistreerd</div>
         <div id="laatste-detail" class="detail"></div>
-        <div id="laatste-ritme" class="detail"></div>
+        <div id="vooruit" class="vooruit" hidden>
+          <div class="vcel" id="v-verwacht"><b></b><span>verwacht</span><small></small></div>
+          <div class="vcel" id="v-streef"><b></b><span></span><small></small></div>
+          <div class="vcel" id="v-gem"><b></b><span>gemiddeld</span><small></small></div>
+        </div>
         <div id="laatste-kant" class="kantpil" data-deel="borst" hidden></div>
         <div id="bezig" class="bezig" hidden></div>
       </section>
@@ -341,7 +342,7 @@
       </div>
       <div class="b-slaap" hidden>
         <label class="veld">Wakker om (leeg = slaapt nog)
-          <input type="time" id="b-wakker" class="tijdgroot">
+          <span class="kiezer groot"><output id="b-wakker-tekst">Slaapt nog</output><input type="time" id="b-wakker"></span>
         </label>
       </div>
       <div class="b-meting" hidden>
@@ -390,10 +391,10 @@
       </div>
       <div class="tijddatum">
         <label class="veld"><span id="b-tijdlabel">Tijd</span>
-          <input type="time" id="b-tijd" class="tijdgroot" required>
+          <span class="kiezer groot"><output id="b-tijd-tekst"></output><input type="time" id="b-tijd" required></span>
         </label>
         <label class="veld datumklein">Datum
-          <input type="date" id="b-datum" required>
+          <span class="kiezer"><output id="b-datum-tekst"></output><input type="date" id="b-datum" required></span>
         </label>
       </div>
       <p class="klein-grijs" id="b-door"></p>
@@ -418,7 +419,7 @@
         </label>
       </div>
       <label class="veld">Datum
-        <input type="date" id="m-datum" required>
+        <span class="kiezer"><output id="m-datum-tekst"></output><input type="date" id="m-datum" required></span>
       </label>
       <div class="knoppen">
         <span class="vul"></span>
