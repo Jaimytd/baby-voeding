@@ -251,6 +251,7 @@
 
       <section class="kaart grafiek" id="g-kunst" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-flessen" data-deel="fles"></section>
+      <section class="kaart grafiek" id="g-perfles" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-pauze"></section>
       <section class="kaart" id="g-dagdeel"></section>
       <section class="kaart grafiek" id="g-ritme"></section>
@@ -340,7 +341,7 @@
       </div>
       <div class="b-slaap" hidden>
         <label class="veld">Wakker om (leeg = slaapt nog)
-          <input type="datetime-local" id="b-wakker">
+          <input type="time" id="b-wakker" class="tijdgroot">
         </label>
       </div>
       <div class="b-meting" hidden>
@@ -387,15 +388,19 @@
           </label>
         </div>
       </div>
-      <label class="veld"><span id="b-tijdlabel">Datum en tijd</span>
-        <input type="datetime-local" id="b-tijd" required>
-      </label>
+      <div class="tijddatum">
+        <label class="veld"><span id="b-tijdlabel">Tijd</span>
+          <input type="time" id="b-tijd" class="tijdgroot" required>
+        </label>
+        <label class="veld datumklein">Datum
+          <input type="date" id="b-datum" required>
+        </label>
+      </div>
       <p class="klein-grijs" id="b-door"></p>
       <div class="knoppen">
-        <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>
-        <span class="vul"></span>
-        <button value="annuleer" formnovalidate class="secundair">Annuleren</button>
         <button value="opslaan" class="primair klein">Opslaan</button>
+        <button value="annuleer" formnovalidate class="secundair">Annuleren</button>
+        <button type="button" id="b-verwijder" class="gevaar">Verwijderen</button>
       </div>
     </form>
   </dialog>
@@ -490,6 +495,18 @@
         </div>
         <p class="klein-grijs" id="thema-uitleg"></p>
         <label class="schakel"><span>Nachtstand (22 tot 7 uur donker en rustig)</span><input type="checkbox" role="switch" id="i-nacht"></label>
+      </fieldset>
+      <fieldset class="onderdelen" data-deel="fles">
+        <legend>Waar werken jullie naartoe?</legend>
+        <div class="tweeveld">
+          <label class="veld">Tijd tussen flessen (uur)
+            <input type="number" inputmode="decimal" min="1" max="8" step="0.5" id="i-streef-uur">
+          </label>
+          <label class="veld">Per fles (ml)
+            <input type="number" inputmode="numeric" min="30" max="400" step="5" id="i-streef-ml">
+          </label>
+        </div>
+        <p class="klein-grijs">Deze streefwaarden staan als dun stippellijntje in de grafieken en als "streef" bij de cijfers. Geldt voor deze telefoon.</p>
       </fieldset>
       <fieldset class="onderdelen" id="i-oppas">
         <legend>Oppas</legend>

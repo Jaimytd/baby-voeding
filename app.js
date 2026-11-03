@@ -3,10 +3,10 @@ import { maakStore, isGedeeld, isKapot } from "./store.js";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
-const PRESETS = { kolf: [35, 70, 105, 140], kunst: [35, 70, 105, 140], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
+const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "41";
+const APP_VERSIE = "42";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -41,6 +41,10 @@ const plusDagen = (dag, n) => {
   const d = new Date(dag);
   d.setDate(d.getDate() + n);
   return d.getTime();
+};
+const naarDatum = (t) => {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 const naarDatetimeLocal = (t) => {
   const d = new Date(t);
@@ -189,6 +193,7 @@ function totalen(lijst) {
   t.kolf = t.kolfL + t.kolfR;
   t.samen = t.kunst + t.kolf;
   t.slaapUur = Math.round(t.slaapMin / 6) / 10;
+  t.perFles = t.flessen ? Math.round((t.kunst + t.fles) / t.flessen) : 0;
   return t;
 }
 
@@ -445,6 +450,10 @@ let naam = ls.get("naam", "");
 let gezin = ls.get("gezin", "");
 let periode = ls.get("periode", 14);
 let kind = ls.get("kind", {});  // { kind, geboortedatum }, gedeeld via de database
+// Streefwaarden (per telefoon): waar jullie naartoe werken. Subtiel zichtbaar bij de cijfers.
+let streef = { uur: 4, ml: 175, ...ls.get("streef", {}) };
+const streefUur = () => Math.min(8, Math.max(1, Number(streef.uur) || 4));
+const streefMl = () => Math.min(400, Math.max(30, Number(streef.ml) || 175));
 
 // ---------- onderdelen aan/uit (per telefoon) ----------
 // Wat je niet bijhoudt, verdwijnt uit beeld; eerdere registraties blijven gewoon bestaan.
@@ -486,6 +495,7 @@ function verjaardagVandaag() {
   if (!l || l.dagen !== 0 || l.maanden === 0) return null;
   return l.maanden % 12 === 0 ? { jaar: l.maanden / 12 } : { maanden: l.maanden };
 }
+const streefTekst = () => `${String(streefUur()).replace(".", ",")} u`;
 function renderKind() {
   $("#leeftijd").textContent = [kindNaam(), leeftijdTekst()].filter(Boolean).join(" · ");
 }
@@ -1038,7 +1048,7 @@ for (const blok of $$(".soort[data-soort]")) {
   for (const ml of PRESETS[blok.dataset.soort]) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "pil";
+    b.className = "pil" + (["kunst", "kolf"].includes(blok.dataset.soort) && ml === streefMl() ? " streef" : "");
     b.textContent = ml;
     b.dataset.ml = ml;
     b.addEventListener("click", () => {
@@ -1544,7 +1554,7 @@ function renderLaatste() {
   const pozen = tussenpozen(voedmomenten(alleenVoeding.filter((v) => v.tijd >= Date.now() - DAG)));
   const gem = pozen.length ? pozen.reduce((s, p) => s + p.duur, 0) / pozen.length : 0;
   $("#laatste-ritme").textContent = pozen.length
-    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(gem)}`
+    ? `Afgelopen 24 uur ${pozen.length + 1} keer, gemiddeld elke ${duurTekst(gem)}${heeft("fles") ? ` · streef ${streefTekst()}` : ""}`
     : "";
   // Verwachte volgende voeding: laatste voeding plus het gemiddelde, min een kwartier (een
   // voeding wordt meestal een kwartier na het begin geregistreerd). Tot 2 uur erna zichtbaar.
@@ -1774,8 +1784,8 @@ function renderGisteren() {
     const flesMl = t.kunst + t.fles;
     tegels.push(
       tegel(`${t.kunst} ml`, "kunstvoeding", heeft("kolven") && t.fles ? `+ ${t.fles} ml moedermelk` : "", trendTekst("kunst", "ml", null), "kunst"),
-      tegel(t.flessen, t.flessen === 1 ? "fles" : "flessen", t.flessen ? `gem. ${Math.round(flesMl / t.flessen)} ml` : "", trendTekst("flessen", "keer", null)),
-      p ? tegel(duurTekst(p.gem), "tussen flessen", `kortste ${duurTekst(p.min.duur)}`) : "",
+      tegel(t.flessen, t.flessen === 1 ? "fles" : "flessen", t.flessen ? `gem. ${t.perFles} ml <i class="streef ${t.perFles >= streefMl() ? "gehaald" : ""}">streef ${streefMl()}</i>` : "", trendTekst("flessen", "keer", null)),
+      p ? tegel(duurTekst(p.gem), "tussen flessen", `kortste ${duurTekst(p.min.duur)} <i class="streef ${p.gem >= streefUur() * 36e5 ? "gehaald" : ""}">streef ${streefTekst()}</i>`) : "",
       p ? tegel(duurTekst(p.max.duur), "langste pauze", `${uurMin(p.max.van)} tot ${uurMin(p.max.tot)}`) : "",
     );
     // Vitamine K-richtlijn geldt alleen als de baby ook moedermelk krijgt.
@@ -1811,7 +1821,7 @@ function pauzegrafiek(el, reeks, perWeek, kleur) {
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const rijen = reeks.map((x) => ({ x, p: pauzeStats(pauzesIn(x.d, plusDagen(x.d, perWeek ? 7 : 1))) }));
-  const maxUur = Math.max(4, Math.ceil(Math.max(0, ...rijen.filter((r) => r.p).map((r) => r.p.max.duur)) / 36e5));
+  const maxUur = Math.max(4, Math.ceil(streefUur() + 0.5), Math.ceil(Math.max(0, ...rijen.filter((r) => r.p).map((r) => r.p.max.duur)) / 36e5));
   const stap = maxUur <= 6 ? 1 : maxUur <= 12 ? 2 : 3;
   const top = Math.ceil(maxUur / stap) * stap;
   const y = (ms) => pt + (H - pt - pb) * (1 - ms / (top * 36e5));
@@ -1840,13 +1850,14 @@ function pauzegrafiek(el, reeks, perWeek, kleur) {
   const alle = rijen.filter((r) => !r.x.lopend).flatMap((r) => pauzesIn(r.x.d, plusDagen(r.x.d, perWeek ? 7 : 1)));
   const s = pauzeStats(alle);
   if (s) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(s.gem)}" y2="${y(s.gem)}" class="gemlijn"/>`;
+  if (heeft("fles")) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(streefUur() * 36e5)}" y2="${y(streefUur() * 36e5)}" class="streeflijn"/><text x="${W - pr - 2}" y="${y(streefUur() * 36e5) - 3}" class="streeflabel" text-anchor="end">streef ${streefTekst()}</text>`;
   const samenvatting = s
     ? `<p class="pauzesom"><span>gem. <b>${duurTekst(s.gem)}</b></span><span>kortste <b>${duurTekst(s.min.duur)}</b> <small>${dagLabel(s.min.tot).toLowerCase()} ${uurMin(s.min.van)} tot ${uurMin(s.min.tot)}</small></span><span>langste <b>${duurTekst(s.max.duur)}</b> <small>${dagLabel(s.max.tot).toLowerCase()} ${uurMin(s.max.van)} tot ${uurMin(s.max.tot)}</small></span></p>`
     : `<p class="klein-grijs">Nog te weinig voedingen om pauzes te tonen.</p>`;
   el.innerHTML = `<div class="grafiekkop"><h2>Tijd tussen voedingen${perWeek ? " (per week)" : ""}</h2></div>
     ${samenvatting}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde, kortste en langste tijd tussen voedingen per ${perWeek ? "week" : "dag"}">${svg}</svg>
-    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld</span><span><i class="kapje" style="border-color:${kleur}"></i>kortste en langste</span><span><i class="streep"></i>gemiddelde periode</span></div>
+    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld</span><span><i class="kapje" style="border-color:${kleur}"></i>kortste en langste</span><span><i class="streep"></i>gemiddelde periode</span>${heeft("fles") ? `<span><i class="streep streef"></i>streef</span>` : ""}</div>
     <div class="tabelrol"><table class="dagtabel pauzetabel">
       <thead><tr><th>${perWeek ? "Week" : "Dag"}</th><th>gem.</th><th>kortste</th><th>langste</th></tr></thead>
       <tbody>${[...rijen].reverse().filter((r) => r.p).map(({ x, p }) => `<tr class="${x.lopend ? "nu" : ""}"><th>${x.naam}</th><td class="sub">${uurKort(p.gem)}</td>
@@ -2004,7 +2015,7 @@ function ritmegrafiek(el, n) {
     <div class="legenda">${leg}</div>`;
 }
 
-function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn }) {
+function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn, gemEenheid }) {
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const waarden = reeks.map((x) => delen.reduce((s, k) => s + x.t[k], 0));
@@ -2037,16 +2048,17 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
   if (volle.length) {
     const gem = volle.reduce((s, x) => s + delen.reduce((a, k) => a + x.t[k], 0), 0) / volle.length;
     svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(gem)}" y2="${y(gem)}" class="gemlijn"/>`;
-    gemTekst = `gem. ${Math.round(gem)} ${eenheid}/dag`;
+    gemTekst = `gem. ${Math.round(gem)} ${gemEenheid || `${eenheid}/dag`}`;
   }
   if (lijn) {
-    svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(lijn.waarde)}" y2="${y(lijn.waarde)}" class="grenslijn"/>
-      <text x="${W - pr - 2}" y="${y(lijn.waarde) - 4}" class="grenslabel" text-anchor="end">${lijn.waarde} ${eenheid}</text>`;
+    const kl = lijn.klasse === "streef" ? "streeflijn" : "grenslijn";
+    svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(lijn.waarde)}" y2="${y(lijn.waarde)}" class="${kl}"/>
+      <text x="${W - pr - 2}" y="${y(lijn.waarde) - 4}" class="${lijn.klasse === "streef" ? "streeflabel" : "grenslabel"}" text-anchor="end">${lijn.waarde} ${eenheid}</text>`;
   }
   const leg = legenda.map((l, j) => `<span><i style="background:${kleuren[j]}"></i>${l}</span>`).join("");
   el.innerHTML = `<div class="grafiekkop"><h2>${titel}</h2><span class="klein-grijs">${gemTekst}</span></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titel} per ${reeks.length > 30 ? "week" : "dag"}">${svg}</svg>
-    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span>${lijn ? `<span><i class="streep grens"></i>${lijn.uitleg}</span>` : ""}</div>`;
+    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span>${lijn ? `<span><i class="streep ${lijn.klasse === "streef" ? "streef" : "grens"}"></i>${lijn.uitleg}</span>` : ""}</div>`;
 }
 
 function renderOverzicht() {
@@ -2064,6 +2076,10 @@ function renderOverzicht() {
     ...(heeft("borst") || heeft("kolven") ? { lijn: { waarde: VITK_ML, uitleg: `${VITK_ML} ml (vitamine K-richtlijn)` } } : {}),
   });
   staafgrafiek($("#g-flessen"), { titel: "Flessen" + per, eenheid: "keer", reeks, delen: ["flessen"], kleuren: [kleur("--kunst")], legenda: ["aantal flessen"] });
+  staafgrafiek($("#g-perfles"), {
+    titel: "Per fles" + per, eenheid: "ml", gemEenheid: "ml per fles", reeks, delen: ["perFles"], kleuren: [kleur("--kunst")], legenda: ["gem. ml per fles"],
+    lijn: { waarde: streefMl(), uitleg: `streef ${streefMl()} ml`, klasse: "streef" },
+  });
   staafgrafiek($("#g-luiers"), {
     titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["natAlleen", "poep", "droog"],
     kleuren: [kleur("--luier"), kleur("--poep"), kleur("--luier-licht")], legenda: ["nat", "poep (of beide)", "droog"],
@@ -2172,18 +2188,21 @@ function openBewerk(id) {
   $("#b-poep").checked = Boolean(v.poep);
   $("#b-opmerking").value = v.opmerking || "";
   $(".b-slaap", dlgBewerk).hidden = !isSlaap(v);
-  $("#b-wakker").value = v.eind ? naarDatetimeLocal(v.eind) : "";
+  $("#b-wakker").value = v.eind ? uurMin(v.eind) : "";
   $(".b-meting", dlgBewerk).hidden = !isMeting(v);
   $("#b-gewicht").value = v.gewicht || "";
   $("#b-lengte").value = v.lengte ? (v.lengte / 10).toFixed(1) : "";
   $(".b-hapje", dlgBewerk).hidden = !isHapje(v);
   $("#b-wat").value = v.wat || "";
   $("#b-reactie").value = v.reactie || "goed";
-  $("#b-tijdlabel").textContent = isSlaap(v) ? "In slaap gevallen om" : isMeting(v) ? "Datum" : "Datum en tijd";
+  $("#b-tijdlabel").textContent = isSlaap(v) ? "In slaap om" : "Tijd";
+  // Bij een meting doet de tijd er niet toe: alleen de datum.
+  $("#b-tijd").closest("label").hidden = isMeting(v);
+  $("#b-datum").value = naarDatum(v.tijd);
   $("#b-titel").textContent = luier ? "Luier aanpassen" : kolven ? "Kolven aanpassen" : isSlaap(v) ? "Slaap aanpassen" : isMeting(v) ? "Meting aanpassen" : isHapje(v) ? "Hapje aanpassen" : "Voeding aanpassen";
   $(".b-voeding", dlgBewerk).hidden = !isVoeding(v);
   $(".b-kolven", dlgBewerk).hidden = !kolven;
-  $("#b-tijd").value = naarDatetimeLocal(v.tijd);
+  $("#b-tijd").value = uurMin(v.tijd);
   $("#b-links").value = getal(v.borstL) || "";
   $("#b-rechts").value = getal(v.borstR) || "";
   $("#b-kolf").value = getal(v.kolf) || "";
@@ -2211,14 +2230,16 @@ function openBewerk(id) {
 dlgBewerk.addEventListener("close", () => {
   const oud = voedingen.find((x) => x.id === bewerkId);
   if (dlgBewerk.returnValue === "opslaan" && oud) {
-    const tijd = new Date($("#b-tijd").value).getTime();
+    const tijd = new Date(`${$("#b-datum").value}T${isMeting(oud) ? "12:00" : $("#b-tijd").value || "00:00"}`).getTime();
     const basis = { tijd: Number.isFinite(tijd) ? tijd : oud.tijd };
     if (isLuier(oud)) {
       const opmerking = $("#b-opmerking").value.trim().slice(0, 200);
       store.update(bewerkId, { ...basis, nat: $("#b-nat").checked, poep: $("#b-poep").checked, ...(opmerking || "opmerking" in oud ? { opmerking: opmerking || null } : {}) });
     } else if (isSlaap(oud)) {
-      const eind = $("#b-wakker").value ? new Date($("#b-wakker").value).getTime() : null;
-      if (eind && (eind < basis.tijd || eind - basis.tijd > 24 * 36e5)) return toast("De wektijd moet na het begin liggen, en hoogstens 24 uur later.");
+      // Wektijd op dezelfde dag als het begin; ligt hij eerder op de klok, dan is het de volgende dag.
+      let eind = $("#b-wakker").value ? new Date(`${naarDatum(basis.tijd)}T${$("#b-wakker").value}`).getTime() : null;
+      if (eind && eind < basis.tijd) eind = plusDagen(eind, 1);
+      if (eind && eind - basis.tijd > 24 * 36e5) return toast("De wektijd moet binnen 24 uur na het begin liggen.");
       store.update(bewerkId, { ...basis, eind });
     } else if (isMeting(oud)) {
       const gewicht = getal($("#b-gewicht").value) || null;
@@ -2279,6 +2300,8 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-kind").value = kindNaam();
   $("#i-geboren").value = kind.geboortedatum || "";
   $("#i-nacht").checked = nachtAan;
+  $("#i-streef-uur").value = streefUur();
+  $("#i-streef-ml").value = streefMl();
   $("#i-oppas").hidden = !isGedeeld();
   werkThemaKeuzeBij();
   $("#i-status").textContent = isGedeeld()
@@ -2292,6 +2315,13 @@ dlgInst.addEventListener("close", () => {
   if (n) {
     naam = n;
     ls.set("naam", naam);
+  }
+  const nieuwStreef = { uur: parseFloat(String($("#i-streef-uur").value).replace(",", ".")) || streef.uur, ml: getal($("#i-streef-ml").value) || streef.ml };
+  if (nieuwStreef.uur !== streef.uur || nieuwStreef.ml !== streef.ml) {
+    streef = nieuwStreef;
+    ls.set("streef", streef);
+    for (const blok of $$(".soort[data-soort]")) for (const c of $$(".pil", blok)) c.classList.toggle("streef", Number(c.dataset.ml) === streefMl());
+    renderAlles();
   }
   // Kind: alleen schrijven als er iets veranderd is.
   const nieuwKind = { kind: $("#i-kind").value.trim().slice(0, 30), geboortedatum: $("#i-geboren").value || null };

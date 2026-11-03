@@ -19,6 +19,7 @@ In **Instellingen** vul je de naam en geboortedatum in (gedeeld met de andere te
 
 ## Handig
 
+- **Streefwaarden:** in Instellingen vul je in waar jullie naartoe werken, bijvoorbeeld 4 uur tussen de flessen en 175 ml per fles (de standaard). Dat staat subtiel bij de cijfers: als "streef" bij Gisteren (groen zodra het gehaald is), als dun stippellijntje in de grafieken "Tijd tussen voedingen" en "Per fles", bij het ritme bovenaan, en de snelkeuze die gelijk is aan het streefdoel heeft een stipje.
 - **Verwachte volgende voeding:** bovenaan, rechts naast "geleden", staat de verwachte tijd van de volgende voeding: de laatste voeding plus de gemiddelde tussentijd van de afgelopen 24 uur, min een kwartier (een voeding wordt meestal een kwartier na het begin geregistreerd). Eronder staat hoe lang het nog duurt, of hoeveel ze over tijd is.
 - **Wie deed wat:** in het overzicht per persoon de flessen, nachtflessen, luiers en slaapjes, met een kroontje voor de nachtkoning.
 - **Weekkaart:** één plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.

@@ -506,11 +506,12 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .tweeveld { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .veld input, .veld select { min-width: 0; max-width: 100%; }
 .knoppen { flex-wrap: wrap; }
-#form-bewerk .knoppen { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* bewerkvenster: opslaan breed bovenaan, annuleren eronder, verwijderen apart en klein */
+#form-bewerk .knoppen { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 6px; padding-bottom: env(safe-area-inset-bottom); }
 #form-bewerk .knoppen .vul { display: none; }
-#form-bewerk .knoppen .primair { grid-column: 1 / -1; order: -1; min-height: 52px; }
-#form-bewerk .knoppen .gevaar { order: 2; }
-#form-bewerk .knoppen .secundair { order: 1; }
+#form-bewerk .knoppen .primair { min-height: 52px; }
+#form-bewerk .knoppen .secundair { min-height: 48px; }
+#form-bewerk .knoppen .gevaar { justify-self: center; padding: 10px 16px; margin-top: 4px; }
 
 /* vandaag: gevoed, gekolfd, over */
 #totalen-vandaag { display: grid; gap: 10px; }
@@ -878,3 +879,21 @@ body.nacht .laatste .sinds { font-size: 30px; }
 body.nacht .toast button { color: #c2410c; }
 body.nacht img, body.nacht svg { filter: brightness(.92); }
 .themakeuze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+
+/* bewerken: de tijd groot, de datum klein ernaast */
+.tijddatum { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: end; }
+.veld input[type="time"], .veld input[type="date"] {
+  min-height: 48px; border: 1px solid var(--lijn); border-radius: 12px; padding: 0 12px; background: var(--veld); color: var(--tekst); font: inherit; width: 100%;
+}
+.veld input.tijdgroot { font-size: 24px; font-weight: 700; min-height: 56px; font-variant-numeric: tabular-nums; }
+.veld.datumklein input { font-size: 14px; color: var(--zacht); }
+.veld.datumklein { font-size: 13px; }
+/* streefwaarden */
+.pil.streef { box-shadow: inset 0 0 0 2px var(--kunst-bg); }
+.pil.streef::after { content: " ·"; color: var(--kunst); font-weight: 800; }
+.tegel small i.streef, .idetail i.streef { font-style: normal; color: var(--zacht); opacity: .8; }
+.tegel small i.streef::before { content: "· "; }
+.tegel small i.streef.gehaald { color: var(--goed); opacity: 1; }
+.grafiek .streeflijn { stroke: var(--goed); stroke-width: 1.2; stroke-dasharray: 2 4; opacity: .9; }
+.grafiek .streeflabel { font-size: 9px; fill: var(--goed); font-weight: 700; }
+.legenda i.streep.streef { border-top: 2px dotted var(--goed); }
