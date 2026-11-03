@@ -254,7 +254,6 @@
       <section class="kaart grafiek" id="g-kunst" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-perfles" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-pauze"></section>
-      <section class="kaart grafiek" id="g-ritme"></section>
       <section class="kaart grafiek" id="g-borst" data-deel="borst"></section>
       <section class="kaart grafiek" id="g-kolf" data-deel="kolven"></section>
       <section class="kaart grafiek" id="g-slaap" data-deel="slaap"></section>
@@ -264,6 +263,7 @@
 
       <details class="meer" id="meer">
         <summary>Meer grafieken en tabellen</summary>
+        <section class="kaart grafiek" id="g-ritme"></section>
         <section class="kaart grafiek" id="g-flessen" data-deel="fles"></section>
         <section class="kaart" id="g-dagdeel"></section>
         <section class="kaart grafiek" id="g-samen" data-deel="kolven fles"></section>
@@ -469,7 +469,11 @@
             <input type="date" id="i-geboren">
           </label>
         </div>
-        <p class="klein-grijs">Gedeeld met de andere telefoon. Geeft de leeftijd, maandverjaardagen en de groeikaart.</p>
+        <div class="segment geslachtkeuze" role="group" aria-label="Meisje of jongen">
+          <button type="button" data-geslacht="meisje">Meisje</button>
+          <button type="button" data-geslacht="jongen">Jongen</button>
+        </div>
+        <p class="klein-grijs">Naam en geboortedatum worden gedeeld met de andere telefoon en geven de leeftijd, maandverjaardagen en de groeikaart. Meisje of jongen bepaalt welke groeicurve erbij staat.</p>
       </fieldset>
       <fieldset class="onderdelen">
         <legend>Wat houden jullie bij?</legend>

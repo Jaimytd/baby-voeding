@@ -1,5 +1,5 @@
 // Service worker: app werkt ook zonder verbinding. Verhoog VERSIE bij elke release.
-const VERSIE = "v47";
+const VERSIE = "v48";
 const SHELL = [
   "./",
   "index.html",
@@ -12,6 +12,7 @@ const SHELL = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/apple-touch-icon.png",
+  "groei-who.json",
 ];
 
 self.addEventListener("install", (e) => {

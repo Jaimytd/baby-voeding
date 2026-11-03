@@ -946,3 +946,17 @@ body[data-thema="verjaardag"] { --t-rank: url("data:image/svg+xml,%3Csvg xmlns='
 .uitklap > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid var(--zacht); border-bottom: 2px solid var(--zacht); transform: rotate(-45deg); flex: none; }
 .uitklap[open] > summary::before { transform: rotate(45deg); }
 .grafiek .onderlabel { font-size: 8px; fill: #fff; font-weight: 700; opacity: .95; }
+
+/* oneven aantal tegels: de laatste over de volle breedte */
+.bliktegels .tegel:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.grafiek .voetnoot { margin: 8px 0 0; }
+/* groeicurven */
+#groei h3 { margin: 12px 0 4px; font-size: 15px; }
+#groei .curve { stroke: var(--zacht); stroke-width: 1; opacity: .55; }
+#groei .curve.midden { stroke-width: 1.6; opacity: .8; stroke-dasharray: none; }
+#groei .curve.binnen { stroke-dasharray: 3 3; }
+#groei .curve.buiten { stroke-dasharray: 1.5 3; opacity: .45; }
+#groei .curvelabel { font-size: 8px; fill: var(--zacht); }
+.geslachtkeuze { display: grid; grid-template-columns: 1fr 1fr; }
+.geslachtkeuze button { min-height: 40px; font-size: 14px; }
+.geslachtkeuze button.aan { background: var(--primair); color: var(--primair-tekst); }

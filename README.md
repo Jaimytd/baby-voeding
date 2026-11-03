@@ -13,7 +13,7 @@ In **Instellingen** vul je de naam en geboortedatum in (gedeeld met de andere te
 ## Slaap, groei en eerste hapjes
 
 - **Slaap:** een kaart met één knop: **Slaapt nu** en daarna **Wakker**. De slaap is gedeeld, dus de andere telefoon ziet hem lopen en kan hem ook stoppen. In Vandaag, de geschiedenis, het dagritme en het overzicht staat hoeveel er geslapen is. Vergeten te stoppen? Na 16 uur vraagt de app of het klopt.
-- **Groei:** in het overzicht, **Meting toevoegen** na elk bezoek aan het consultatiebureau: gewicht in gram en lengte in cm. Je ziet de toename per week, een grafiek van het gewicht per week oud en een tabel. De curve van het consultatiebureau blijft leidend.
+- **Groei:** in het overzicht, **Meting toevoegen** na elk bezoek aan het consultatiebureau: gewicht in gram en lengte in cm. Je ziet de toename per week, het percentiel, en de metingen tegen de WHO-groeicurve (lijnen voor 0, +1, +2, -1 en -2 standaardafwijkingen) voor meisje of jongen (instelbaar). De WHO-tabellen staan in `groei-who.json` (gemaakt met `tests/tools/groeitabel.py`). Het consultatiebureau gebruikt de Nederlandse groeidiagrammen, die hier iets van kunnen afwijken; dat boekje blijft leidend.
 - **Eerste hapjes** (aan te zetten in Instellingen): wat ze geproefd heeft en hoe het ging. In het overzicht een lijst per gerecht met de eerste keer, hoe vaak en de laatste reactie.
 - **Luier met opmerking:** tik op een luier in de geschiedenis om er een opmerking bij te zetten, bijvoorbeeld over de kleur.
 

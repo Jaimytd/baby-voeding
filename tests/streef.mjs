@@ -1,5 +1,5 @@
 // Streefwaarden (4 uur, 175 ml) en het bewerkvenster met tijd groot en datum klein.
-import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, luier, op } from "./helper.mjs";
+import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, luier, op, zetKind } from "./helper.mjs";
 
 const b = await launch();
 const G = "streef" + Date.now();
@@ -10,6 +10,7 @@ for (const u of [1, 4, 7, 10, 13, 16, 19]) await fles(G, op("2026-11-02", u), 10
 await fles(G, op(D, 8), 140);
 await fles(G, op(D, 11), 140);
 await luier(G, op(D, 9), true, false);
+await zetKind(G, "Noor", "2026-08-15");
 
 let { p, ctx } = await telefoon(b, { gezin: G, datum: `${D}T12:00:00+01:00`, opslag: { onderdelen: { borst: false, kolven: false } }, fouten });
 await p.waitForTimeout(500);
@@ -28,6 +29,13 @@ const blik = await tekst(p, "#gisteren");
 ok("gisteren: gem. 100 ml · streef 175 (niet gehaald)", /gem\. 100 ml\s*streef 175/.test(blik), blik);
 ok("gisteren: tussen flessen 3 u 00, streef 4 u", /3 u 00\s*tussen flessen\s*kortste 3 u 00\s*streef 4 u/.test(blik), blik);
 ok("streef niet groen", (await p.$$eval("#gisteren .streef.gehaald", (x) => x.length)) === 0);
+{
+  const tegels = await p.$$eval("#gisteren .tegel", (x) => x.map((e) => Math.round(e.getBoundingClientRect().width)));
+  ok("vijf tegels: de laatste over de volle breedte", tegels.length === 5 && tegels[4] > tegels[0] * 1.8, tegels.join(","));
+}
+ok("tijd tussen voedingen als staven met streeflijn", (await p.$$eval("#g-pauze rect", (x) => x.length)) >= 1 && Boolean(await p.$("#g-pauze .streeflijn")) && /gem\. 3:00 tussen voedingen/.test(await tekst(p, "#g-pauze")), (await tekst(p, "#g-pauze")).slice(0, 80));
+ok("luiers: één staaf per dag met poep erin", /luiers per dag/.test(await tekst(p, "#g-luiers")) && /met poep per dag/.test(await tekst(p, "#g-luiers")));
+ok("dagritme onder Meer", await p.$eval("#g-ritme", (e) => e.closest("#meer") !== null));
 // Grafieken: streeflijn bij pauze en per fles.
 ok("pauzegrafiek: streeflijn 4 u", Boolean(await p.$("#g-pauze .streeflijn")) && /streef 4 u/.test(await tekst(p, "#g-pauze")));
 ok("grafiek per fles met streef 175", /Per fles/.test(await tekst(p, "#g-perfles")) && /175 ml/.test(await tekst(p, "#g-perfles")) && Boolean(await p.$("#g-perfles .streeflijn")));
@@ -103,9 +111,26 @@ ok("zonder metingen staat Groei onder Meer", await p.$eval("#groei", (e) => e.pa
 await p.click("#meer > summary");
 await p.click("#meting-toevoegen");
 await p.fill("#m-gewicht", "5000");
+await p.fill("#m-lengte", "58");
 await p.click("#form-meting button[value=opslaan]");
 await p.waitForTimeout(500);
 ok("met een meting staat Groei vooraan", await p.$eval("#groei", (e) => e.parentElement.id === "tab-overzicht"));
+await p.waitForTimeout(800);
+ok("groei: vijf WHO-curven bij gewicht en bij lengte", (await p.$$eval("#groei .curve", (x) => x.length)) === 10, String(await p.$$eval("#groei .curve", (x) => x.length)));
+const gr = await tekst(p, "#groei");
+ok("groei: percentiel bij gewicht en lengte (meisje)", /WHO-curve, meisje/.test(gr) && /5,00 kg\s*3 november · P\d+/.test(gr) && /58,0 cm\s*3 november · P\d+/.test(gr), gr.slice(0, 200));
+const pMeisje = /kg\s*3 november · P(\d+)/.exec(gr)?.[1];
+await p.click("#knop-instellingen");
+await p.click(".geslachtkeuze [data-geslacht=jongen]");
+await p.click("#dlg-instellingen button[value=sluit]");
+await p.waitForTimeout(300);
+const gr2 = await tekst(p, "#groei");
+const pJongen = /kg\s*3 november · P(\d+)/.exec(gr2)?.[1];
+ok("jongen: andere curve, lager percentiel voor hetzelfde gewicht", /WHO-curve, jongen/.test(gr2) && Number(pJongen) < Number(pMeisje), `${pMeisje} vs ${pJongen}`);
+if (process.env.SHOT_DIR) await (await p.$("#groei")).screenshot({ path: process.env.SHOT_DIR + "/s-groei.png" });
+await p.click("#knop-instellingen");
+await p.click(".geslachtkeuze [data-geslacht=meisje]");
+await p.click("#dlg-instellingen button[value=sluit]");
 await p.click("#groei tr.tikbaar >> nth=0");
 ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd")) && (await zichtbaar(p, "#b-datum")));
 await p.keyboard.press("Escape");

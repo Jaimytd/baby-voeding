@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "47";
+const APP_VERSIE = "48";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1415,10 +1415,75 @@ function renderHapjes() {
 
 // ---------- groei: gewicht en lengte ----------
 const dlgMeting = $("#dlg-meting");
+// WHO-groeistandaard (gewicht en lengte naar leeftijd, LMS per week). Wordt één keer geladen.
+let who = null;
+let whoGevraagd = false;
+function laadWho() {
+  if (whoGevraagd) return;
+  whoGevraagd = true;
+  fetch("groei-who.json").then((r) => r.json()).then((d) => { who = d; renderGroei(); }).catch(() => { whoGevraagd = false; });
+}
+let geslacht = ls.get("geslacht", "meisje");
+// Waarde op de curve bij z standaardafwijkingen (LMS-methode), lineair tussen de weekpunten.
+function whoWaarde(soort, dagen, z) {
+  const tabel = who?.[geslacht]?.[soort];
+  if (!tabel || dagen < 0 || dagen > tabel.at(-1)[0]) return null;
+  const i = Math.min(tabel.length - 2, Math.floor(dagen / 7));
+  const [d0, l0, m0, s0] = tabel[i], [d1, l1, m1, s1] = tabel[i + 1];
+  const f = (dagen - d0) / (d1 - d0);
+  const L = l0 + f * (l1 - l0), M = m0 + f * (m1 - m0), S = s0 + f * (s1 - s0);
+  return L === 0 ? M * Math.exp(S * z) : M * Math.pow(1 + L * S * z, 1 / L);
+}
+// Percentiel van een meting (z-score via LMS, dan de normale verdeling).
+function whoPercentiel(soort, dagen, waarde) {
+  const tabel = who?.[geslacht]?.[soort];
+  if (!tabel || dagen < 0 || dagen > tabel.at(-1)[0]) return null;
+  const i = Math.min(tabel.length - 2, Math.floor(dagen / 7));
+  const [d0, l0, m0, s0] = tabel[i], [d1, l1, m1, s1] = tabel[i + 1];
+  const f = (dagen - d0) / (d1 - d0);
+  const L = l0 + f * (l1 - l0), M = m0 + f * (m1 - m0), S = s0 + f * (s1 - s0);
+  const z = L === 0 ? Math.log(waarde / M) / S : (Math.pow(waarde / M, L) - 1) / (L * S);
+  const cdf = 0.5 * (1 + erf(z / Math.SQRT2));
+  return Math.round(cdf * 100);
+}
+function erf(x) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x));
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return x >= 0 ? y : -y;
+}
+// Eén groeigrafiek: de metingen van het kind tegen de WHO-curven (-2, -1, 0, +1, +2 SD).
+function groeigrafiek({ soort, metingen, g, eenheid, deel, label }) {
+  const W = 340, H = 190, pl = 40, pb = 20, pt = 10, pr = 22;
+  const weken = metingen.map((m) => (m.tijd - g) / DAG / 7);
+  const maxW = Math.max(8, Math.ceil((Math.max(...weken) + 3) / 4) * 4);
+  const curve = (z) => { const pts = []; for (let w = 0; w <= maxW; w += 1) { const v = whoWaarde(soort, w * 7, z); if (v != null) pts.push([w, v * deel]); } return pts; };
+  const curven = who ? [-2, -1, 0, 1, 2].map((z) => ({ z, pts: curve(z) })) : [];
+  const alle = [...metingen.map((m) => m[soort]), ...curven.flatMap((c) => c.pts.map((p) => p[1]))];
+  const stapY = soort === "gewicht" ? 1000 : 50;
+  const minY = Math.floor(Math.min(...alle) / stapY) * stapY;
+  const maxY = Math.ceil(Math.max(...alle) / stapY) * stapY;
+  const x = (w) => pl + (w / maxW) * (W - pl - pr);
+  const y = (v) => pt + (H - pt - pb) * (1 - (v - minY) / (maxY - minY));
+  const fmtY = (v) => (soort === "gewicht" ? `${(v / 1000).toFixed(0)}` : `${(v / 10).toFixed(0)}`);
+  let svg = "";
+  for (let v = minY; v <= maxY; v += stapY) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" class="rast"/><text x="${pl - 4}" y="${y(v) + 3}" class="as" text-anchor="end">${fmtY(v)}</text>`;
+  const stapW = maxW <= 16 ? 2 : maxW <= 40 ? 4 : 8;
+  for (let w = stapW; w <= maxW; w += stapW) svg += `<text x="${x(w)}" y="${H - 6}" class="as" text-anchor="middle">${w}</text>`;
+  for (const c of curven) {
+    svg += `<polyline points="${c.pts.map(([w, v]) => `${x(w).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}" fill="none" class="curve ${c.z === 0 ? "midden" : Math.abs(c.z) === 2 ? "buiten" : "binnen"}"/>`;
+    const eind = c.pts.at(-1);
+    if (eind) svg += `<text x="${W - pr + 3}" y="${y(eind[1]) + 3}" class="curvelabel">${c.z > 0 ? "+" : ""}${c.z || "0"}</text>`;
+  }
+  svg += `<polyline points="${metingen.map((m, i) => `${x(weken[i])},${y(m[soort])}`).join(" ")}" fill="none" stroke="var(--primair)" stroke-width="2"/>`;
+  metingen.forEach((m, i) => { svg += `<circle cx="${x(weken[i])}" cy="${y(m[soort])}" r="3.5" fill="var(--primair)"/>`; });
+  return `<div class="grafiekkop"><h3>${label}</h3><span class="klein-grijs">${eenheid} per week oud</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${label} tegen de WHO-groeicurve">${svg}</svg>`;
+}
 function renderGroei() {
   const el = $("#groei");
   const lijst = alleMetingen();
   const g = geboren();
+  if (g && lijst.length && !who) laadWho();
   const knop = `<button type="button" id="meting-toevoegen" class="secundair breed">Meting toevoegen</button>`;
   if (!lijst.length) {
     el.innerHTML = `<h2>Groei</h2><p class="klein-grijs">Vul na elk bezoek aan het consultatiebureau het gewicht en de lengte in. Dan zie je hier de groei en de toename per week.</p>${knop}`;
@@ -1437,26 +1502,21 @@ function renderGroei() {
   }
   const kg = (gr) => (gr / 1000).toFixed(2).replace(".", ",");
   const laatsteL = lijst.filter((m) => m.lengte).at(-1);
-  // Grafiek: gewicht tegen leeftijd (of datum als de geboortedatum ontbreekt).
-  const W = 340, H = 170, pl = 40, pb = 20, pt = 10, pr = 8;
-  const xs = metG.map((m) => (g ? (m.tijd - g) / DAG / 7 : (m.tijd - metG[0].tijd) / DAG / 7));
-  const maxX = Math.max(4, Math.ceil(Math.max(...xs) / 4) * 4);
-  const minY = Math.floor(Math.min(...metG.map((m) => m.gewicht)) / 500) * 500;
-  const maxY = Math.ceil(Math.max(...metG.map((m) => m.gewicht)) / 500) * 500 + 500;
-  const x = (w) => pl + (w / maxX) * (W - pl - pr);
-  const y = (gr) => pt + (H - pt - pb) * (1 - (gr - minY) / (maxY - minY));
-  let svg = "";
-  for (let v = minY; v <= maxY; v += 500) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" class="rast"/><text x="${pl - 4}" y="${y(v) + 3}" class="as" text-anchor="end">${(v / 1000).toFixed(1).replace(".", ",")}</text>`;
-  for (let w = maxX <= 16 ? 2 : 4; w <= maxX; w += maxX <= 16 ? 2 : 4) svg += `<text x="${x(w)}" y="${H - 6}" class="as" text-anchor="middle">${w} wk</text>`;
-  const punten = metG.map((m, i) => `${x(xs[i])},${y(m.gewicht)}`).join(" ");
-  svg += `<polyline points="${punten}" fill="none" stroke="var(--primair)" stroke-width="2"/>`;
-  metG.forEach((m, i) => { svg += `<circle cx="${x(xs[i])}" cy="${y(m.gewicht)}" r="3.5" fill="var(--primair)"/>`; });
-  el.innerHTML = `<div class="grafiekkop"><h2>Groei</h2><span class="klein-grijs">${g ? "gewicht per week oud" : "gewicht"}</span></div>
+  const metL = lijst.filter((m) => m.lengte);
+  // Percentiel van de laatste meting op de WHO-curve.
+  const pct = (m, soort) => (g && who && m ? whoPercentiel(soort, (m.tijd - g) / DAG, soort === "gewicht" ? m.gewicht / 1000 : m.lengte / 10) : null);
+  const pG = pct(laatste, "gewicht"), pL = pct(laatsteL, "lengte");
+  const grafieken = g
+    ? [metG.length ? groeigrafiek({ soort: "gewicht", metingen: metG, g, eenheid: "kg", deel: 1000, label: "Gewicht" }) : "",
+       metL.length ? groeigrafiek({ soort: "lengte", metingen: metL, g, eenheid: "cm", deel: 10, label: "Lengte" }) : ""].join("")
+    : "";
+  el.innerHTML = `<div class="grafiekkop"><h2>Groei</h2><span class="klein-grijs">${g ? `WHO-curve, ${geslacht}` : ""}</span></div>
     <div class="blik groeiblik">
-      ${laatste ? `<div class="blikvak"><span>Gewicht</span><b>${kg(laatste.gewicht)} kg</b><small>${new Date(laatste.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</small>${toename}</div>` : ""}
-      ${laatsteL ? `<div class="blikvak"><span>Lengte</span><b>${(laatsteL.lengte / 10).toFixed(1).replace(".", ",")} cm</b><small>${new Date(laatsteL.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}</small></div>` : ""}
+      ${laatste ? `<div class="blikvak"><span>Gewicht</span><b>${kg(laatste.gewicht)} kg</b><small>${new Date(laatste.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}${pG != null ? ` · P${pG}` : ""}</small>${toename}</div>` : ""}
+      ${laatsteL ? `<div class="blikvak"><span>Lengte</span><b>${(laatsteL.lengte / 10).toFixed(1).replace(".", ",")} cm</b><small>${new Date(laatsteL.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "long" })}${pL != null ? ` · P${pL}` : ""}</small></div>` : ""}
     </div>
-    ${metG.length > 1 ? `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gewicht in kg per week">${svg}</svg><p class="klein-grijs">Kilo's per ${g ? "week oud" : "week sinds de eerste meting"}. De groeicurve van het consultatiebureau is leidend; deze grafiek laat jullie eigen metingen zien.</p>` : ""}
+    ${grafieken}
+    ${g ? `<p class="klein-grijs">Lijnen: de WHO-groeistandaard voor ${geslacht}s (0, +1, +2 en -1, -2 standaardafwijkingen); P is het percentiel, bijvoorbeeld P40 betekent dat 40% van de ${geslacht}s lichter of korter is. Het consultatiebureau gebruikt de Nederlandse groeidiagrammen, die hier iets van af kunnen wijken; dat boekje blijft leidend.</p>` : `<p class="klein-grijs">Vul in Instellingen de geboortedatum in om de WHO-groeicurve erbij te zien.</p>`}
     <div class="tabelrol"><table class="dagtabel"><thead><tr><th>Datum</th>${g ? "<th>leeftijd</th>" : ""}<th>gewicht</th><th>lengte</th></tr></thead>
       <tbody>${[...lijst].reverse().map((m) => { const l = g ? leeftijd(m.tijd) : null; return `<tr class="tikbaar" data-id="${esc(m.id)}"><th>${new Date(m.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "2-digit" })}</th>${g ? `<td>${l ? `${l.weken} wk` : "·"}</td>` : ""}<td>${m.gewicht ? kg(m.gewicht) + " kg" : "·"}</td><td>${m.lengte ? (m.lengte / 10).toFixed(1).replace(".", ",") + " cm" : "·"}</td></tr>`; }).join("")}</tbody></table></div>
     ${knop}`;
@@ -1829,59 +1889,6 @@ function renderGisteren() {
     ${trendGetoond ? `<p class="klein-grijs trenduitleg">Pijlen: gemiddelde per dag van de laatste week tegenover de week ervoor. Tik op een pijltje voor de getallen.</p>` : ""}`;
 }
 
-// Tijd tussen voedingen: per dag (of week) de gemiddelde pauze als stip, met een streep van de
-// kortste tot de langste pauze.
-function pauzegrafiek(el, reeks, perWeek, kleur) {
-  const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
-  const n = reeks.length;
-  const rijen = reeks.map((x) => ({ x, p: pauzeStats(pauzesIn(x.d, plusDagen(x.d, perWeek ? 7 : 1))) }));
-  const maxUur = Math.max(4, Math.ceil(streefUur() + 0.5), Math.ceil(Math.max(0, ...rijen.filter((r) => r.p).map((r) => r.p.max.duur)) / 36e5));
-  const stap = maxUur <= 6 ? 1 : maxUur <= 12 ? 2 : 3;
-  const top = Math.ceil(maxUur / stap) * stap;
-  const y = (ms) => pt + (H - pt - pb) * (1 - ms / (top * 36e5));
-  const bw = (W - pl - pr) / n;
-  let svg = "";
-  for (let u = 0; u <= top; u += stap) {
-    svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(u * 36e5)}" y2="${y(u * 36e5)}" class="rast"/><text x="${pl - 4}" y="${y(u * 36e5) + 3}" class="as" text-anchor="end">${u} u</text>`;
-  }
-  rijen.forEach(({ x, p }, i) => {
-    const cx = pl + bw * i + bw / 2;
-    if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
-    if (!p) return;
-    const op = x.lopend ? ' opacity=".45"' : "";
-    // Streep van kortste tot langste, met een kapje aan beide kanten.
-    const kap = Math.max(3, Math.min(8, bw * 0.3));
-    svg += `<line x1="${cx}" x2="${cx}" y1="${y(p.min.duur)}" y2="${y(p.max.duur)}" stroke="${kleur}" stroke-width="1.5"${op}/>`;
-    for (const d of [p.min.duur, p.max.duur]) svg += `<line x1="${cx - kap}" x2="${cx + kap}" y1="${y(d)}" y2="${y(d)}" stroke="${kleur}" stroke-width="2" stroke-linecap="round"${op}/>`;
-    svg += `<circle cx="${cx}" cy="${y(p.gem)}" r="${Math.max(2.5, Math.min(4, bw * 0.25))}" fill="${kleur}"${op}/>`;
-    // Bij 7 dagen of minder: langste boven en kortste onder de streep.
-    if (n <= 7) {
-      svg += `<text x="${cx}" y="${Math.max(9, y(p.max.duur) - 4)}" class="waardelabel" text-anchor="middle">${uurKort(p.max.duur)}</text>`;
-      if (p.n > 1) svg += `<text x="${cx}" y="${Math.min(H - pb - 2, y(p.min.duur) + 11)}" class="waardelabel" text-anchor="middle">${uurKort(p.min.duur)}</text>`;
-    }
-  });
-  // Over de hele periode, zonder de lopende dag of week.
-  const alle = rijen.filter((r) => !r.x.lopend).flatMap((r) => pauzesIn(r.x.d, plusDagen(r.x.d, perWeek ? 7 : 1)));
-  const s = pauzeStats(alle);
-  if (s) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(s.gem)}" y2="${y(s.gem)}" class="gemlijn"/>`;
-  if (heeft("fles")) svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(streefUur() * 36e5)}" y2="${y(streefUur() * 36e5)}" class="streeflijn"/><text x="${W - pr - 2}" y="${y(streefUur() * 36e5) - 3}" class="streeflabel" text-anchor="end">streef ${streefTekst()}</text>`;
-  const samenvatting = s
-    ? `<p class="pauzesom"><span>gem. <b>${duurTekst(s.gem)}</b></span><span>kortste <b>${duurTekst(s.min.duur)}</b> <small>${dagLabel(s.min.tot).toLowerCase()} ${uurMin(s.min.van)} tot ${uurMin(s.min.tot)}</small></span><span>langste <b>${duurTekst(s.max.duur)}</b> <small>${dagLabel(s.max.tot).toLowerCase()} ${uurMin(s.max.van)} tot ${uurMin(s.max.tot)}</small></span></p>`
-    : `<p class="klein-grijs">Nog te weinig voedingen om pauzes te tonen.</p>`;
-  el.innerHTML = `<div class="grafiekkop"><h2>Tijd tussen voedingen${perWeek ? " (per week)" : ""}</h2></div>
-    ${samenvatting}
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde, kortste en langste tijd tussen voedingen per ${perWeek ? "week" : "dag"}">${svg}</svg>
-    <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld</span><span><i class="kapje" style="border-color:${kleur}"></i>kortste en langste</span><span><i class="streep"></i>gemiddelde periode</span>${heeft("fles") ? `<span><i class="streep streef"></i>streef</span>` : ""}</div>
-    <details class="uitklap"><summary>Per ${perWeek ? "week" : "dag"}: gemiddeld, kortste, langste</summary>
-    <div class="tabelrol"><table class="dagtabel pauzetabel">
-      <thead><tr><th>${perWeek ? "Week" : "Dag"}</th><th>gem.</th><th>kortste</th><th>langste</th></tr></thead>
-      <tbody>${[...rijen].reverse().filter((r) => r.p).map(({ x, p }) => `<tr class="${x.lopend ? "nu" : ""}"><th>${x.naam}</th><td class="sub">${uurKort(p.gem)}</td>
-        <td>${uurKort(p.min.duur)}${perWeek ? "" : `<small>${uurMin(p.min.van)}-${uurMin(p.min.tot)}</small>`}</td>
-        <td>${uurKort(p.max.duur)}${perWeek ? "" : `<small>${uurMin(p.max.van)}-${uurMin(p.max.tot)}</small>`}</td></tr>`).join("")}</tbody>
-    </table></div></details>
-    <p class="klein-grijs pauzeuitleg">Borst en fles binnen 45 minuten tellen als één voeding. Pauzes langer dan 12 uur tellen niet mee (waarschijnlijk vergeten te registreren).</p>`;
-}
-
 // Hoeveel melk per dagdeel: per dag (of week) de ml uit de fles in de nacht, ochtend, middag
 // en avond. Hoe donkerder het vak, hoe meer. Zo zie je of de grote flessen verschuiven.
 const DAGDELEN = [
@@ -2030,13 +2037,13 @@ function ritmegrafiek(el, n) {
     <div class="legenda">${leg}</div>`;
 }
 
-function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn, gemEenheid, onderin }) {
+function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn, gemEenheid, onderin, formaat = (v) => Math.round(v), voetnoot = "" }) {
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const waarden = reeks.map((x) => delen.reduce((s, k) => s + x.t[k], 0));
   // De lopende dag of week bepaalt de schaal niet (die kan uitschieten); zo'n staaf wordt afgekapt.
-  const max = Math.max(10, ...waarden.filter((_, i) => !reeks[i].lopend || reeks.every((x) => x.lopend || !x.actief)), lijn ? lijn.waarde * 1.05 : 0);
-  const stap = [10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => max / s <= 4) || 1000;
+  const max = Math.max(2, ...waarden.filter((_, i) => !reeks[i].lopend || reeks.every((x) => x.lopend || !x.actief)), lijn ? lijn.waarde * 1.05 : 0);
+  const stap = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].find((s) => max / s <= 4) || 1000;
   const top = Math.ceil(max / stap) * stap;
   const bw = (W - pl - pr) / n;
   const y = (v) => pt + (H - pt - pb) * (1 - v / top);
@@ -2056,7 +2063,7 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
       svg += `<rect x="${cx - breed / 2}" width="${breed}" y="${y(tot)}" height="${y(basis) - y(tot)}" rx="2" fill="${kleuren[j]}" ${x.lopend ? 'opacity=".45"' : ""}/>`;
       basis = tot;
     });
-    if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${Math.max(9, y(Math.min(top, waarden[i])) - 3)}" class="waardelabel" text-anchor="middle">${waarden[i]}</text>`;
+    if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${Math.max(9, y(Math.min(top, waarden[i])) - 3)}" class="waardelabel" text-anchor="middle">${formaat(waarden[i])}</text>`;
     // Klein wit label onderin de staaf, alleen als de staaf hoog genoeg is.
     const onder = onderin?.(x);
     if (n <= 14 && onder && y(0) - y(Math.min(top, waarden[i])) > 16) svg += `<text x="${cx}" y="${y(0) - 4}" class="onderlabel" text-anchor="middle">${onder}</text>`;
@@ -2066,7 +2073,7 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
   if (volle.length) {
     const gem = volle.reduce((s, x) => s + delen.reduce((a, k) => a + x.t[k], 0), 0) / volle.length;
     svg += `<line x1="${pl}" x2="${W - pr}" y1="${y(gem)}" y2="${y(gem)}" class="gemlijn"/>`;
-    gemTekst = `gem. ${Math.round(gem)} ${gemEenheid || `${eenheid}/dag`}`;
+    gemTekst = `gem. ${formaat(gem)} ${gemEenheid || `${eenheid}/dag`}`;
   }
   if (lijn) {
     const kl = lijn.klasse === "streef" ? "streeflijn" : "grenslijn";
@@ -2076,7 +2083,7 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
   const leg = legenda.map((l, j) => `<span><i style="background:${kleuren[j]}"></i>${l}</span>`).join("");
   el.innerHTML = `<div class="grafiekkop"><h2>${titel}</h2><span class="klein-grijs">${gemTekst}</span></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${titel} per ${reeks.length > 30 ? "week" : "dag"}">${svg}</svg>
-    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span>${lijn ? `<span><i class="streep ${lijn.klasse === "streef" ? "streef" : "grens"}"></i>${lijn.uitleg}</span>` : ""}</div>`;
+    <div class="legenda">${leg}<span><i class="streep"></i>gemiddelde</span>${lijn ? `<span><i class="streep ${lijn.klasse === "streef" ? "streef" : "grens"}"></i>${lijn.uitleg}</span>` : ""}</div>${voetnoot ? `<p class="klein-grijs voetnoot">${voetnoot}</p>` : ""}`;
 }
 
 function renderOverzicht() {
@@ -2099,13 +2106,34 @@ function renderOverzicht() {
     titel: "Per fles" + per, eenheid: "ml", gemEenheid: "ml per fles", reeks, delen: ["perFles"], kleuren: [kleur("--kunst")], legenda: ["gem. ml per fles"],
     lijn: { waarde: streefMl(), uitleg: `streef ${streefMl()} ml`, klasse: "streef" },
   });
-  staafgrafiek($("#g-luiers"), {
-    titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["natAlleen", "poep", "droog"],
-    kleuren: [kleur("--luier"), kleur("--poep"), kleur("--luier-licht")], legenda: ["nat", "poep (of beide)", "droog"],
-  });
+  {
+    const volle = reeks.filter((x) => x.actief && !x.lopend && x.t.luiers);
+    const gemPoep = volle.length ? (volle.reduce((s, x) => s + x.t.poep, 0) / volle.length).toFixed(1).replace(".", ",") : "0";
+    staafgrafiek($("#g-luiers"), {
+      titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["luiers"], kleuren: [kleur("--luier")], legenda: ["luiers per dag"],
+      onderin: (x) => (x.t.poep ? `${x.t.poep} p` : ""), voetnoot: `In de staaf: hoeveel met poep. Gemiddeld ${gemPoep} met poep per dag.`,
+    });
+  }
   const pauze = $("#g-pauze");
   pauze.hidden = !MODI.some(modusAan);
-  if (!pauze.hidden) pauzegrafiek(pauze, reeks, perWeek, kleur("--kunst"));
+  if (!pauze.hidden) {
+    // Per dag (of week) de gemiddelde tussentijd in uren, als gewone staven.
+    const metPauze = reeks.map((x) => { const p = pauzeStats(pauzesIn(x.d, plusDagen(x.d, perWeek ? 7 : 1))); return { ...x, p, t: { ...x.t, pauzeUur: p ? p.gem / 36e5 : 0 } }; });
+    staafgrafiek(pauze, {
+      titel: "Tijd tussen voedingen" + per, eenheid: "u", gemEenheid: "tussen voedingen", reeks: metPauze, delen: ["pauzeUur"], kleuren: [kleur("--kunst")],
+      legenda: ["gemiddelde tussentijd"], formaat: (v) => uurKort(v * 36e5),
+      ...(heeft("fles") ? { lijn: { waarde: streefUur(), uitleg: `streef ${streefTekst()}`, klasse: "streef" } } : {}),
+      voetnoot: "Borst en fles binnen 45 minuten tellen als één voeding; pauzes langer dan 12 uur tellen niet mee.",
+    });
+    const rijen = [...metPauze].reverse().filter((r) => r.p);
+    pauze.insertAdjacentHTML("beforeend", `<details class="uitklap"><summary>Per ${perWeek ? "week" : "dag"}: kortste en langste</summary>
+      <div class="tabelrol"><table class="dagtabel pauzetabel">
+        <thead><tr><th>${perWeek ? "Week" : "Dag"}</th><th>gem.</th><th>kortste</th><th>langste</th></tr></thead>
+        <tbody>${rijen.map(({ naam, lopend, p }) => `<tr class="${lopend ? "nu" : ""}"><th>${naam}</th><td class="sub">${uurKort(p.gem)}</td>
+          <td>${uurKort(p.min.duur)}${perWeek ? "" : `<small>${uurMin(p.min.van)}-${uurMin(p.min.tot)}</small>`}</td>
+          <td>${uurKort(p.max.duur)}${perWeek ? "" : `<small>${uurMin(p.max.van)}-${uurMin(p.max.tot)}</small>`}</td></tr>`).join("")}</tbody>
+      </table></div></details>`);
+  }
   const dagdeel = $("#g-dagdeel");
   dagdeel.hidden = !modusAan("fles");
   if (!dagdeel.hidden) dagdeelOverzicht(dagdeel, reeks, perWeek);
@@ -2341,6 +2369,7 @@ $("#knop-instellingen").addEventListener("click", () => {
   $("#i-geboren").value = kind.geboortedatum || "";
   $("#i-nacht").checked = nachtAan;
   $("#i-streef-uur").value = streefUur();
+  for (const b of $$(".geslachtkeuze button")) b.classList.toggle("aan", b.dataset.geslacht === geslacht);
   $("#i-streef-ml").value = streefMl();
   $("#i-oppas").hidden = !isGedeeld();
   werkThemaKeuzeBij();
@@ -2371,6 +2400,14 @@ dlgInst.addEventListener("close", () => {
     renderAlles();
   }
 });
+for (const b of $$(".geslachtkeuze button")) {
+  b.addEventListener("click", () => {
+    geslacht = b.dataset.geslacht;
+    ls.set("geslacht", geslacht);
+    for (const x of $$(".geslachtkeuze button")) x.classList.toggle("aan", x === b);
+    renderGroei();
+  });
+}
 $("#i-nacht").addEventListener("change", (e) => {
   nachtAan = e.target.checked;
   ls.set("nachtstand", nachtAan);
