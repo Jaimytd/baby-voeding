@@ -44,7 +44,10 @@ ok("kolven 100 ml bij Aisha", /Gekolfd\s*100 ml/.test(await tekst(A.p, "#geschie
 for (const [naam, t] of [["Jaimy", J], ["Aisha", A]]) {
   await t.p.click(".tabbar [data-tab=overzicht]");
   await t.p.waitForTimeout(500);
-  ok(`${naam}: overzicht met gisteren, grafieken en tabellen`, (await zichtbaar(t.p, "#gisteren")) && (await t.p.$$eval("#tab-overzicht svg", (x) => x.length)) >= 4 && (await zichtbaar(t.p, "#melktabel")));
+  ok(`${naam}: overzicht met gisteren en grafieken, tabellen onder Meer (dicht)`, (await zichtbaar(t.p, "#gisteren")) && (await t.p.$$eval("#tab-overzicht > section svg", (x) => x.filter((s) => s.getClientRects().length).length)) >= 4 && !(await t.p.$eval("#meer", (e) => e.open)) && (await t.p.$eval("#melktabel", (e) => e.closest("#meer") !== null)));
+  await t.p.click("#meer > summary");
+  ok(`${naam}: Meer opent`, await t.p.$eval("#meer", (e) => e.open));
+  await t.p.click("#meer > summary");
   ok(`${naam}: geen horizontale scroll`, (await t.p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)));
 }
 // Instellingen openen zonder toetsenbord.

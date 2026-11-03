@@ -250,41 +250,43 @@
         <button type="button" data-dagen="w">12 weken</button>
       </div>
 
+      <!-- De kern: vier grafieken die samen het verhaal vertellen. De rest staat onder "Meer". -->
       <section class="kaart grafiek" id="g-kunst" data-deel="fles"></section>
-      <section class="kaart grafiek" id="g-flessen" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-perfles" data-deel="fles"></section>
       <section class="kaart grafiek" id="g-pauze"></section>
-      <section class="kaart" id="g-dagdeel"></section>
       <section class="kaart grafiek" id="g-ritme"></section>
-      <section class="kaart grafiek" id="g-slaap" data-deel="slaap"></section>
-      <section class="kaart" id="wiedeedwat"></section>
-      <section class="kaart" id="groei"></section>
-      <section class="kaart" id="hapjes-overzicht" data-deel="hapjes"></section>
-      <section class="kaart deelkaart">
-        <h2>Weekkaart</h2>
-        <p class="klein-grijs">Eén plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.</p>
-        <button type="button" id="weekkaart" class="secundair breed">Weekkaart maken</button>
-      </section>
-      <section class="kaart grafiek" id="g-luiers" data-deel="luiers"></section>
-      <section class="kaart grafiek" id="g-kolf" data-deel="kolven"></section>
-      <section class="kaart grafiek" id="g-samen" data-deel="kolven fles"></section>
       <section class="kaart grafiek" id="g-borst" data-deel="borst"></section>
+      <section class="kaart grafiek" id="g-kolf" data-deel="kolven"></section>
+      <section class="kaart grafiek" id="g-slaap" data-deel="slaap"></section>
+      <section class="kaart grafiek" id="g-luiers" data-deel="luiers"></section>
+      <section class="kaart" id="groei"></section>
+      <section class="kaart" id="wiedeedwat"></section>
 
-      <section class="kaart" id="melksectie">
-        <h2 id="tabeltitel">Melk per dag (ml)</h2>
-        <div class="tabelrol"><table class="dagtabel" id="melktabel"></table></div>
-        <p class="klein-grijs" id="tabeluitleg"></p>
-      </section>
-
-      <section class="kaart" data-deel="luiers">
-        <h2 id="luiertitel">Luiers per dag</h2>
-        <div class="tabelrol"><table class="dagtabel" id="luiertabel"></table></div>
-      </section>
-
-      <section class="kaart" data-deel="borst">
-        <h2 id="borsttitel">Borstvoeding per dag (min)</h2>
-        <div class="tabelrol"><table class="dagtabel" id="borsttabel"></table></div>
-      </section>
+      <details class="meer" id="meer">
+        <summary>Meer grafieken en tabellen</summary>
+        <section class="kaart grafiek" id="g-flessen" data-deel="fles"></section>
+        <section class="kaart" id="g-dagdeel"></section>
+        <section class="kaart grafiek" id="g-samen" data-deel="kolven fles"></section>
+        <section class="kaart" id="melksectie">
+          <h2 id="tabeltitel">Melk per dag (ml)</h2>
+          <div class="tabelrol"><table class="dagtabel" id="melktabel"></table></div>
+          <p class="klein-grijs" id="tabeluitleg"></p>
+        </section>
+        <section class="kaart" data-deel="luiers">
+          <h2 id="luiertitel">Luiers per dag</h2>
+          <div class="tabelrol"><table class="dagtabel" id="luiertabel"></table></div>
+        </section>
+        <section class="kaart" data-deel="borst">
+          <h2 id="borsttitel">Borstvoeding per dag (min)</h2>
+          <div class="tabelrol"><table class="dagtabel" id="borsttabel"></table></div>
+        </section>
+        <section class="kaart" id="hapjes-overzicht" data-deel="hapjes"></section>
+        <section class="kaart deelkaart">
+          <h2>Weekkaart</h2>
+          <p class="klein-grijs">Eén plaatje met de cijfers van de afgelopen week, om te delen met opa en oma.</p>
+          <button type="button" id="weekkaart" class="secundair breed">Weekkaart maken</button>
+        </section>
+      </details>
     </div>
   </main>
 

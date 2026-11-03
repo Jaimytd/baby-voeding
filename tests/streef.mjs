@@ -96,12 +96,16 @@ await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(500);
 ok("slaap 22:00 tot 06:30 over middernacht = 8 u 30", /Slaap 8 u 30/.test(await tekst(p, "#geschiedenis")), (await tekst(p, "#geschiedenis")).slice(0, 120));
 
-// Meting: alleen datum.
+// Meting: alleen datum. Zonder metingen staat Groei onder "Meer".
 await p.click(".tabbar [data-tab=overzicht]");
+await p.waitForTimeout(300);
+ok("zonder metingen staat Groei onder Meer", await p.$eval("#groei", (e) => e.parentElement.id === "meer"));
+await p.click("#meer > summary");
 await p.click("#meting-toevoegen");
 await p.fill("#m-gewicht", "5000");
 await p.click("#form-meting button[value=opslaan]");
 await p.waitForTimeout(500);
+ok("met een meting staat Groei vooraan", await p.$eval("#groei", (e) => e.parentElement.id === "tab-overzicht"));
 await p.click("#groei tr.tikbaar >> nth=0");
 ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd")) && (await zichtbaar(p, "#b-datum")));
 await p.keyboard.press("Escape");

@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "46";
+const APP_VERSIE = "47";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1422,8 +1422,11 @@ function renderGroei() {
   const knop = `<button type="button" id="meting-toevoegen" class="secundair breed">Meting toevoegen</button>`;
   if (!lijst.length) {
     el.innerHTML = `<h2>Groei</h2><p class="klein-grijs">Vul na elk bezoek aan het consultatiebureau het gewicht en de lengte in. Dan zie je hier de groei en de toename per week.</p>${knop}`;
+    // Zonder metingen hoort deze kaart onder "Meer".
+    if (el.parentElement !== $("#meer")) $("#meer .deelkaart").before(el);
     return;
   }
+  if (el.parentElement === $("#meer")) $("#wiedeedwat").before(el);
   const metG = lijst.filter((m) => m.gewicht);
   const laatste = metG.at(-1);
   const vorige = metG.at(-2);
@@ -1869,12 +1872,13 @@ function pauzegrafiek(el, reeks, perWeek, kleur) {
     ${samenvatting}
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde, kortste en langste tijd tussen voedingen per ${perWeek ? "week" : "dag"}">${svg}</svg>
     <div class="legenda"><span><i class="rond" style="background:${kleur}"></i>gemiddeld</span><span><i class="kapje" style="border-color:${kleur}"></i>kortste en langste</span><span><i class="streep"></i>gemiddelde periode</span>${heeft("fles") ? `<span><i class="streep streef"></i>streef</span>` : ""}</div>
+    <details class="uitklap"><summary>Per ${perWeek ? "week" : "dag"}: gemiddeld, kortste, langste</summary>
     <div class="tabelrol"><table class="dagtabel pauzetabel">
       <thead><tr><th>${perWeek ? "Week" : "Dag"}</th><th>gem.</th><th>kortste</th><th>langste</th></tr></thead>
       <tbody>${[...rijen].reverse().filter((r) => r.p).map(({ x, p }) => `<tr class="${x.lopend ? "nu" : ""}"><th>${x.naam}</th><td class="sub">${uurKort(p.gem)}</td>
         <td>${uurKort(p.min.duur)}${perWeek ? "" : `<small>${uurMin(p.min.van)}-${uurMin(p.min.tot)}</small>`}</td>
         <td>${uurKort(p.max.duur)}${perWeek ? "" : `<small>${uurMin(p.max.van)}-${uurMin(p.max.tot)}</small>`}</td></tr>`).join("")}</tbody>
-    </table></div>
+    </table></div></details>
     <p class="klein-grijs pauzeuitleg">Borst en fles binnen 45 minuten tellen als één voeding. Pauzes langer dan 12 uur tellen niet mee (waarschijnlijk vergeten te registreren).</p>`;
 }
 
@@ -2026,7 +2030,7 @@ function ritmegrafiek(el, n) {
     <div class="legenda">${leg}</div>`;
 }
 
-function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn, gemEenheid }) {
+function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn, gemEenheid, onderin }) {
   const W = 340, H = 170, pl = 30, pb = 20, pt = 16, pr = 4;
   const n = reeks.length;
   const waarden = reeks.map((x) => delen.reduce((s, k) => s + x.t[k], 0));
@@ -2053,6 +2057,9 @@ function staafgrafiek(el, { titel, eenheid, reeks, delen, kleuren, legenda, lijn
       basis = tot;
     });
     if (n <= 14 && waarden[i]) svg += `<text x="${cx}" y="${Math.max(9, y(Math.min(top, waarden[i])) - 3)}" class="waardelabel" text-anchor="middle">${waarden[i]}</text>`;
+    // Klein wit label onderin de staaf, alleen als de staaf hoog genoeg is.
+    const onder = onderin?.(x);
+    if (n <= 14 && onder && y(0) - y(Math.min(top, waarden[i])) > 16) svg += `<text x="${cx}" y="${y(0) - 4}" class="onderlabel" text-anchor="middle">${onder}</text>`;
     if (n <= 14 || i % 5 === (n - 1) % 5) svg += `<text x="${cx}" y="${H - 6}" class="as${x.lopend ? " nu" : ""}" text-anchor="middle">${x.as}</text>`;
   });
   let gemTekst = "";
@@ -2083,7 +2090,8 @@ function renderOverzicht() {
   const per = perWeek ? " (gem. per dag, per week)" : "";
   staafgrafiek($("#g-borst"), { titel: "Borstvoeding" + per, eenheid: "min", reeks, delen: ["L", "R"], kleuren: [kleur("--borst"), kleur("--borst-licht")], legenda: ["links", "rechts"] });
   staafgrafiek($("#g-kunst"), {
-    titel: "Kunstvoeding" + per, eenheid: "ml", reeks, delen: ["kunst"], kleuren: [kleur("--kunst")], legenda: ["kunstvoeding"],
+    titel: "Kunstvoeding" + per, eenheid: "ml", reeks, delen: ["kunst"], kleuren: [kleur("--kunst")], legenda: ["kunstvoeding (met het aantal flessen)"],
+    onderin: (x) => (x.t.flessen ? `${x.t.flessen}×` : ""),
     ...(heeft("borst") || heeft("kolven") ? { lijn: { waarde: VITK_ML, uitleg: `${VITK_ML} ml (vitamine K-richtlijn)` } } : {}),
   });
   staafgrafiek($("#g-flessen"), { titel: "Flessen" + per, eenheid: "keer", reeks, delen: ["flessen"], kleuren: [kleur("--kunst")], legenda: ["aantal flessen"] });
@@ -2105,6 +2113,8 @@ function renderOverzicht() {
   ritme.hidden = !MODI.some(modusAan) && !heeft("luiers") && !heeft("slaap");
   if (!ritme.hidden) ritmegrafiek(ritme, periode === 7 ? 7 : 14);
   staafgrafiek($("#g-slaap"), { titel: "Slaap" + per, eenheid: "uur", reeks, delen: ["slaapUur"], kleuren: [kleur("--slaap")], legenda: ["uren slaap (dag waarop hij begon)"] });
+  // Een lege grafiek zegt niets: pas tonen als er in de periode slaap is bijgehouden.
+  $("#g-slaap").hidden = !reeks.some((x) => x.t.dutjes);
   renderWieDeedWat(reeks, perWeek);
   renderGroei();
   renderHapjes();
