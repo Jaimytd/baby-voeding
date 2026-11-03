@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "50";
+const APP_VERSIE = "51";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1674,18 +1674,26 @@ function renderLaatste() {
 
 // Vandaag in een paar vragen: wat is gevoed en wanneer, wat is gekolfd, wat is er over, welke luiers.
 // Onderdelen die uit staan, blijven weg.
-function dagBlok(t, lijst) {
+function dagBlok(t, lijst, dag) {
   const regel = (hoofd, wat, detail) => `<div class="bregel"><b>${hoofd}</b><span class="bwat">${wat}</span>${detail ? `<span class="bdetail">${detail}</span>` : ""}</div>`;
   const flesMl = t.kunst + t.fles;
   const momenten = voedmomenten(lijst);
   const pozen = tussenpozen(momenten);
   const elke = pozen.length > 1 ? ` · gem. elke ${duurTekst(pozen.reduce((s, p) => s + p.duur, 0) / pozen.length)}` : "";
-  // Wanneer: elk voedmoment als tijd, met de ml uit de fles.
+  // Wanneer: de voedingen onder elkaar met daartussen de tijd ertussen. De nacht (vanaf de
+  // laatste voeding van gisteren) telt mee, en onderaan loopt de tijd sinds de laatste voeding.
+  const eerder = dag ? voedmomenten(voedingen.filter((v) => v.tijd < dag && v.tijd >= dag - MAX_PAUZE)).pop() : null;
+  const vorig = eerder && momenten.length && momenten[0].tijd - eerder.tijd <= MAX_PAUZE ? eerder : null;
+  const tussen = (ms, extra = "") => `<div class="tl-gap${ms >= streefUur() * 36e5 ? " gehaald" : ""}${extra}"><i></i><span>${duurTekst(ms)}</span></div>`;
+  const rij = (m, klasse = "") => {
+    const ml = m.items.reduce((s, v) => s + getal(v.kunst) + getal(v.kolf), 0);
+    const borst = m.items.reduce((s, v) => s + getal(v.borstL) + getal(v.borstR), 0);
+    return `<div class="tl-rij${klasse}"><b>${uurMin(m.tijd)}</b><span>${[ml && `${ml} ml`, borst && `${borst} min borst`].filter(Boolean).join(" + ")}</span></div>`;
+  };
+  const nu = Date.now();
   const tijden = momenten.length
-    ? `<div class="tijden">${momenten.map((m) => {
-        const ml = m.items.reduce((s, v) => s + getal(v.kunst) + getal(v.kolf), 0);
-        return `<span>${uurMin(m.tijd)}${ml ? ` · <b>${ml}</b>` : ""}</span>`;
-      }).join("")}</div>`
+    ? `<div class="tijdlijn">${vorig ? rij({ ...vorig, tijd: vorig.tijd }, " vorig").replace("<b>", "<b>gisteren ") + tussen(momenten[0].tijd - vorig.tijd) : ""}${momenten.map((m, i) => (i ? tussen(m.tijd - momenten[i - 1].tijd) : "") + rij(m)).join("")}${
+        dag && nu - momenten[momenten.length - 1].tijd <= MAX_PAUZE ? tussen(nu - momenten[momenten.length - 1].tijd, " tl-nu") + `<div class="tl-rij nu"><b>nu</b><span>${uurMin(nu)}</span></div>` : ""}</div>`
     : "";
   const gevoed = [
     flesMl && regel(`${flesMl} ml`, "fles", heeft("kolven") ? [t.kunst && `${t.kunst} kunstvoeding`, t.fles && `${t.fles} moedermelk`].filter(Boolean).join(" + ") : ""),
@@ -1708,7 +1716,7 @@ function dagBlok(t, lijst) {
 function renderLijst() {
   const vandaag = dagStart(Date.now());
   const vandaagLijst = voedingen.filter((v) => dagStart(v.tijd) === vandaag);
-  $("#totalen-vandaag").innerHTML = dagBlok(totalen(vandaagLijst), vandaagLijst);
+  $("#totalen-vandaag").innerHTML = dagBlok(totalen(vandaagLijst), vandaagLijst, vandaag);
 
   const perDag = new Map();
   for (const v of voedingen) {

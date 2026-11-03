@@ -1,5 +1,5 @@
 // Service worker: app werkt ook zonder verbinding. Verhoog VERSIE bij elke release.
-const VERSIE = "v50";
+const VERSIE = "v51";
 const SHELL = [
   "./",
   "index.html",
