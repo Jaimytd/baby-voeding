@@ -21,11 +21,12 @@ ok("snelkeuzes 35, 70, 105, 140, 175, zonder stip", chips.join(",") === "35,70,1
 
 // Ritme-regel toont streef.
 ok("bovenaan: gemiddeld met streef 4 u", (await tekst(p, "#v-gem small")) === "streef 4 u", await tekst(p, "#v-gem"));
-// Vandaag: voedingen onder elkaar met de tijd ertussen; de nacht van 13 uur telt niet mee.
+// Geschiedenis: tussen twee voedingen staat de tijd ertussen; de nacht van 13 uur telt niet mee.
 {
-  const rijen = await p.$$eval("#totalen-vandaag .tijdlijn .tl-rij", (x) => x.map((r) => r.textContent.replace(/\s+/g, " ").trim()));
-  const gaps = await p.$$eval("#totalen-vandaag .tijdlijn .tl-gap", (x) => x.map((g) => g.textContent.trim() + (g.classList.contains("tl-nu") ? "*" : "") + (g.classList.contains("gehaald") ? "!" : "")));
-  ok("tijdlijn: 08:00 140 ml, 3 u 00, 11:00 140 ml, 1 u 00 loopt tot nu", rijen.join("|") === "08:00140 ml|11:00140 ml|nu12:00" && gaps.join("|") === "3 u 00|1 u 00*", rijen.join("|") + " / " + gaps.join("|"));
+  const vandaag = await p.$$eval(".dag[data-dag] >> nth=0 >> .tussen", (x) => x.map((g) => g.textContent.trim() + (g.classList.contains("gehaald") ? "!" : "")));
+  const gisteren = await p.$$eval(".dag[data-dag] >> nth=1 >> .tussen", (x) => x.map((g) => g.textContent.trim()));
+  ok("geschiedenis: vandaag één pauze van 3 u 00, gisteren zes", vandaag.join("|") === "3 u 00" && gisteren.join("|") === "3 u 00|3 u 00|3 u 00|3 u 00|3 u 00|3 u 00", vandaag.join("|") + " / " + gisteren.join("|"));
+  ok("Vandaag toont alleen totalen", !(await p.$("#totalen-vandaag .tijden")) && !(await p.$("#totalen-vandaag .tijdlijn")));
 }
 
 // Gisteren: streef bij de tegels, nog niet gehaald.
