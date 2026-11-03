@@ -896,8 +896,6 @@ body.nacht img, body.nacht svg { filter: brightness(.92); }
 .veld.datumklein .kiezer { font-size: 15px; color: var(--zacht); }
 .veld.datumklein { font-size: 13px; }
 /* streefwaarden */
-.pil.streef { box-shadow: inset 0 0 0 2px var(--kunst-bg); }
-.pil.streef::after { content: " ·"; color: var(--kunst); font-weight: 800; }
 .tegel small i.streef, .idetail i.streef { font-style: normal; color: var(--zacht); opacity: .8; }
 .tegel small i.streef::before { content: "· "; }
 .tegel small i.streef.gehaald { color: var(--goed); opacity: 1; }

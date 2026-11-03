@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "45";
+const APP_VERSIE = "46";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -1048,7 +1048,7 @@ for (const blok of $$(".soort[data-soort]")) {
   for (const ml of PRESETS[blok.dataset.soort]) {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "pil" + (["kunst", "kolf"].includes(blok.dataset.soort) && ml === streefMl() ? " streef" : "");
+    b.className = "pil";
     b.textContent = ml;
     b.dataset.ml = ml;
     b.addEventListener("click", () => {
@@ -2350,7 +2350,6 @@ dlgInst.addEventListener("close", () => {
   if (nieuwStreef.uur !== streef.uur || nieuwStreef.ml !== streef.ml) {
     streef = nieuwStreef;
     ls.set("streef", streef);
-    for (const blok of $$(".soort[data-soort]")) for (const c of $$(".pil", blok)) c.classList.toggle("streef", Number(c.dataset.ml) === streefMl());
     renderAlles();
   }
   // Kind: alleen schrijven als er iets veranderd is.

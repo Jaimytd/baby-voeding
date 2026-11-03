@@ -16,7 +16,7 @@ await p.waitForTimeout(500);
 
 // Snelkeuzes: 175 erbij, met een stipje als streefdoel.
 const chips = await p.$$eval('.soort[data-soort=kunst] .chips .pil', (x) => x.map((c) => c.textContent + (c.classList.contains("streef") ? "*" : "")));
-ok("snelkeuzes 35, 70, 105, 140, 175 met 175 als streef", chips.join(",") === "35,70,105,140,175*", chips.join(","));
+ok("snelkeuzes 35, 70, 105, 140, 175, zonder stip", chips.join(",") === "35,70,105,140,175", chips.join(","));
 
 // Ritme-regel toont streef.
 ok("bovenaan: gemiddeld met streef 4 u", (await tekst(p, "#v-gem small")) === "streef 4 u", await tekst(p, "#v-gem"));
