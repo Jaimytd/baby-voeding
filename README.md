@@ -41,7 +41,7 @@ Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd ond
 - **Borst:** tik op **Start** bij links of rechts. De timer loopt door als het scherm vergrendelt of de app sluit, en blijft dezelfde sessie. Tik op de andere kant om te wisselen. Je kunt de minuten ook intypen of bijstellen, ook terwijl de timer loopt. **Geëindigd met** springt mee met de timer en is ook los aan te tikken.
 - **Fles:** kunstvoeding en/of moedermelk in ml, met snelkeuzes of min en plus. Een fles laat een lopende borsttimer met rust.
 - **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
-- **Luier:** één tik op **Nat**, **Poep** of **Beide**. Ernaast staat wanneer de laatste luier was.
+- **Luier:** één tik op **Nat**, **Poep** of **Beide**. Ernaast staat wanneer de laatste luier was. In de tellingen telt elke luier één keer: "4 luiers · 2 nat · 2 poep" betekent twee alleen nat en twee met poep.
 
 Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan de totalen. In de **Geschiedenis** staat achter elke voeding hoe lang na de vorige die was ("na 3 u 15"), groen als dat het streef haalt; ook over de nacht heen. Borst en fles binnen 45 minuten tellen samen als één voeding.
 

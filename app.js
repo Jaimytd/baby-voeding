@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "53";
+const APP_VERSIE = "54";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -169,7 +169,7 @@ function totalen(lijst) {
       t.luiers++;
       if (v.nat) t.nat++;
       if (v.poep) t.poep++;
-      if (v.nat && !v.poep) t.natAlleen++;
+      if (v.nat && !v.poep) t.natAlleen++;  // in de telling telt een luier één keer: "2 nat, 2 poep" zijn 4 luiers
       if (!v.nat && !v.poep) t.droog++;
       continue;
     }
@@ -1693,7 +1693,7 @@ function dagBlok(t, lijst) {
     ${MODI.some(modusAan) ? `<div class="blok gevoed"><div class="bkop">Gevoed${momenten.length ? `<span>${momenten.length} keer${elke}</span>` : ""}</div>${gevoed}</div>` : ""}
     ${heeft("kolven") ? `<div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>` : ""}
     ${over || (heeft("kolven") && t.kolf) ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}
-    ${heeft("luiers") ? `<div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · <b class="poeptekst">${t.poep} poep</b>` : "nog geen"}</span></div></div>` : ""}
+    ${heeft("luiers") ? `<div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.natAlleen} nat · <b class="poeptekst">${t.poep} poep</b>${t.droog ? ` · ${t.droog} droog` : ""}` : "nog geen"}</span></div></div>` : ""}
     ${heeft("slaap") ? `<div class="blok slaap"><div class="bkop">Slaap<span>${t.dutjes ? `${duurTekst(t.slaapMin * 60000)} · ${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}` : "nog niet"}</span></div></div>` : ""}`;
 }
 
@@ -1874,7 +1874,7 @@ function renderGisteren() {
     }
   }
   if (heeft("luiers")) {
-    tegels.push(tegel(t.luiers, t.luiers === 1 ? "luier" : "luiers", t.luiers ? `<em class="poeptekst">${t.poep} poep</em> · ${t.nat} nat${t.droog ? ` · ${t.droog} droog` : ""}` : "", "", "luier"));
+    tegels.push(tegel(t.luiers, t.luiers === 1 ? "luier" : "luiers", t.luiers ? `<em class="poeptekst">${t.poep} poep</em> · ${t.natAlleen} nat${t.droog ? ` · ${t.droog} droog` : ""}` : "", "", "luier"));
   }
   if (heeft("slaap") && t.dutjes) {
     tegels.push(tegel(duurTekst(t.slaapMin * 60000), "slaap", `${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}`, trendTekst("slaapUur", "uur", "op"), "slaap"));
@@ -2182,7 +2182,7 @@ function renderOverzicht() {
   ]);
   $("#luiertitel").textContent = perWeek ? "Luiers per week (gem. per dag)" : "Luiers per dag";
   tabel($("#luiertabel"), [
-    { titel: "Luiers", klasse: "luier", kol: [k("luiers", "tot", true), k("nat", "nat"), k("poep", "poep")] },
+    { titel: "Luiers", klasse: "luier", kol: [k("luiers", "tot", true), k("natAlleen", "nat"), k("poep", "poep")] },
   ]);
   $("#borsttitel").textContent = perWeek ? "Borstvoeding per week (gem. per dag)" : "Borstvoeding per dag (min)";
   tabel($("#borsttabel"), [
