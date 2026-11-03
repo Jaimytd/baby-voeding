@@ -551,7 +551,7 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .blok.luiers { border-color: var(--zacht); }
 .luierkop { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .luierkop h2 { margin-bottom: 8px; }
-.luierknoppen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.luierknoppen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .luierknoppen .pil { min-height: 48px; padding: 4px 0; font-size: 16px; font-weight: 600; }
 .luierknoppen .pil:active { background: var(--veld); }
 

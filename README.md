@@ -41,7 +41,7 @@ Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd ond
 - **Borst:** tik op **Start** bij links of rechts. De timer loopt door als het scherm vergrendelt of de app sluit, en blijft dezelfde sessie. Tik op de andere kant om te wisselen. Je kunt de minuten ook intypen of bijstellen, ook terwijl de timer loopt. **Geëindigd met** springt mee met de timer en is ook los aan te tikken.
 - **Fles:** kunstvoeding en/of moedermelk in ml, met snelkeuzes of min en plus. Een fles laat een lopende borsttimer met rust.
 - **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
-- **Luier:** één tik op **Nat**, **Poep**, **Beide** of **Droog**. Ernaast staat wanneer de laatste luier was.
+- **Luier:** één tik op **Nat**, **Poep** of **Beide**. Ernaast staat wanneer de laatste luier was.
 
 Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan de tijden van elke voeding en luier. Borst en fles binnen 45 minuten tellen samen als één voeding.
 
@@ -51,7 +51,7 @@ De app helpt tegen vergissingen: een vraag bij een timer die al uren loopt, bij 
 
 ## Overzicht
 
-- **Gisteren in één blik:** aantal flessen met de gemiddelde hoeveelheid en de langste pauze, luiers (nat, poep, droog), kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
+- **Gisteren in één blik:** aantal flessen met de gemiddelde hoeveelheid en de langste pauze, luiers (nat, poep), kunstvoeding (met de 500 ml-grens voor vitamine K en hoeveel dagen van de laatste week daaronder zaten), gekolfd (links en rechts) en borstvoeding (links, rechts, aantal keer), elk met een trend.
 - **Grafieken** over 7, 14 of 30 dagen of 12 weken. De kern staat open: kunstvoeding per dag (met het aantal flessen in de staaf), per fles, tijd tussen voedingen en het dagritme, plus slaap, luiers, borst en kolven als die aan staan. Onder **Meer grafieken en tabellen** staan de rest: kunstvoeding (met de 500 ml-lijn als de baby ook moedermelk krijgt), aantal flessen, luiers, kolfopbrengst, kunstvoeding plus gekolfd samen en borstvoeding.
 - **Tijd tussen voedingen:** per dag (of week) de gemiddelde pauze, met een streep van de kortste tot de langste. In een tabel eronder per dag het gemiddelde, de kortste en de langste pauze, met de tijden. Bovenaan het gemiddelde, de kortste en de langste pauze van de hele periode, met wanneer die was. De nacht telt mee; pauzes langer dan 12 uur niet (vergeten te registreren).
 - **Melk per dagdeel:** per dag hoeveel ml er in de nacht (0 tot 6 uur), ochtend, middag en avond gedronken is, met het aantal flessen. Hoe donkerder het vak, hoe meer. Onderaan het gemiddelde en het verschil tussen de laatste en de eerste helft van de periode, zodat je ziet of het verschuift.

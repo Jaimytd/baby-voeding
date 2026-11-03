@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "49";
+const APP_VERSIE = "50";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -2035,7 +2035,7 @@ function ritmegrafiek(el, n) {
     heeft("borst") && `<span><i class="rond" style="background:${kleur("--borst")}"></i>borst</span>`,
     heeft("kolven") && `<span><i class="rond" style="border:1.5px solid ${kleur("--kolf")};background:none"></i>kolven</span>`,
     heeft("slaap") && `<span><i style="background:${kleur("--slaap")};opacity:.7;width:14px;height:5px"></i>slaap</span>`,
-    heeft("luiers") && `<span><i class="streepje" style="background:${kleur("--luier")}"></i>luier nat</span><span><i class="streepje" style="background:${kleur("--poep")}"></i>luier poep</span><span><i class="streepje" style="background:${kleur("--luier")};opacity:.45"></i>droog</span>`,
+    heeft("luiers") && `<span><i class="streepje" style="background:${kleur("--luier")}"></i>luier nat</span><span><i class="streepje" style="background:${kleur("--poep")}"></i>luier poep</span>`,
     `<span><i style="background:var(--veld)"></i>nacht (22 tot 7)</span>`,
   ].filter(Boolean).join("");
   el.innerHTML = `<div class="grafiekkop"><h2>Dagritme</h2><span class="klein-grijs">laatste ${n} dagen</span></div>
@@ -2116,7 +2116,7 @@ function renderOverzicht() {
     const volle = reeks.filter((x) => x.actief && !x.lopend && x.t.luiers);
     const gemPoep = volle.length ? (volle.reduce((s, x) => s + x.t.poep, 0) / volle.length).toFixed(1).replace(".", ",") : "0";
     staafgrafiek($("#g-luiers"), {
-      titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["poep", "zonderPoep"], kleuren: [kleur("--poep"), kleur("--luier")], legenda: ["met poep", "nat of droog"],
+      titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["poep", "zonderPoep"], kleuren: [kleur("--poep"), kleur("--luier")], legenda: ["met poep", "alleen nat"],
       onderin: (x) => (x.t.poep ? `${x.t.poep}` : ""), voetnoot: `Het bruine deel is met poep, met het aantal erin. Gemiddeld ${gemPoep} met poep per dag.`,
     });
   }
@@ -2184,7 +2184,7 @@ function renderOverzicht() {
   ]);
   $("#luiertitel").textContent = perWeek ? "Luiers per week (gem. per dag)" : "Luiers per dag";
   tabel($("#luiertabel"), [
-    { titel: "Luiers", klasse: "luier", kol: [k("luiers", "tot", true), k("nat", "nat"), k("poep", "poep"), k("droog", "droog")] },
+    { titel: "Luiers", klasse: "luier", kol: [k("luiers", "tot", true), k("nat", "nat"), k("poep", "poep")] },
   ]);
   $("#borsttitel").textContent = perWeek ? "Borstvoeding per week (gem. per dag)" : "Borstvoeding per dag (min)";
   tabel($("#borsttabel"), [
@@ -2307,6 +2307,7 @@ dlgBewerk.addEventListener("close", () => {
     const tijd = new Date(`${$("#b-datum").value}T${isMeting(oud) ? "12:00" : $("#b-tijd").value || "00:00"}`).getTime();
     const basis = { tijd: Number.isFinite(tijd) ? tijd : oud.tijd };
     if (isLuier(oud)) {
+      if (!$("#b-nat").checked && !$("#b-poep").checked) return toast("Kies nat, poep of allebei.");
       const opmerking = $("#b-opmerking").value.trim().slice(0, 200);
       store.update(bewerkId, { ...basis, nat: $("#b-nat").checked, poep: $("#b-poep").checked, ...(opmerking || "opmerking" in oud ? { opmerking: opmerking || null } : {}) });
     } else if (isSlaap(oud)) {
