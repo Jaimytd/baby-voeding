@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "48";
+const APP_VERSIE = "49";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -121,7 +121,7 @@ function onderdelen(v) {
 
 // Eén registratie als korte regel: wat was het en hoeveel, met alleen de nodige uitsplitsing.
 function regels(v) {
-  if (isLuier(v)) return [{ soort: "luier", wat: "Luier", hoeveel: luierTekst(v), detail: v.opmerking || "" }];
+  if (isLuier(v)) return [{ soort: v.poep ? "luier poep" : "luier", wat: "Luier", hoeveel: luierTekst(v), detail: v.opmerking || "" }];
   if (isSlaap(v)) return [{ soort: "slaap", wat: "Slaap", hoeveel: v.eind ? duurTekst(slaapDuur(v)) : "", detail: v.eind ? `tot ${uurMin(v.eind)}` : "slaapt nog" }];
   if (isMeting(v)) return [{ soort: "meting", wat: "Meting", hoeveel: [v.gewicht && `${(v.gewicht / 1000).toFixed(2).replace(".", ",")} kg`, v.lengte && `${(v.lengte / 10).toFixed(1).replace(".", ",")} cm`].filter(Boolean).join(" · "), detail: "" }];
   if (isHapje(v)) return [{ soort: "hapje", wat: "Hapje", hoeveel: v.wat, detail: REACTIES[v.reactie] || "" }];
@@ -193,6 +193,7 @@ function totalen(lijst) {
   t.kolf = t.kolfL + t.kolfR;
   t.samen = t.kunst + t.kolf;
   t.slaapUur = Math.round(t.slaapMin / 6) / 10;
+  t.zonderPoep = t.luiers - t.poep;
   t.perFles = t.flessen ? Math.round((t.kunst + t.fles) / t.flessen) : 0;
   return t;
 }
@@ -1613,6 +1614,11 @@ function renderLaatste() {
   const ll = luiers[0];
   const laatste = alleenVoeding[0];
   $("#laatste-luier").textContent = ll ? `laatste ${uurMin(ll.tijd)}, ${luierTekst(ll)} · ${geledenTekst(ll.tijd).toLowerCase()}` : "";
+  const lp = luiers.find((v) => v.poep && v.tijd >= Date.now() - 2 * DAG);
+  // De aparte poepregel alleen als de laatste luier zelf geen poepluier was.
+  $("#laatste-poep").textContent = lp
+    ? (lp === ll ? "" : `laatste poep ${dagLabel(lp.tijd) === "Vandaag" ? "" : "gisteren "}${uurMin(lp.tijd)} · ${geledenTekst(lp.tijd).toLowerCase()}`)
+    : luiers.length ? "geen poep in de laatste 2 dagen" : "";
   // Hoe vaak: gemiddelde tijd tussen de voedingen van de afgelopen 24 uur.
   const pozen = tussenpozen(voedmomenten(alleenVoeding.filter((v) => v.tijd >= Date.now() - DAG)));
   const gem = pozen.length ? pozen.reduce((s, p) => s + p.duur, 0) / pozen.length : 0;
@@ -1693,8 +1699,8 @@ function dagBlok(t, lijst) {
     ${MODI.some(modusAan) ? `<div class="blok gevoed"><div class="bkop">Gevoed${momenten.length ? `<span>${momenten.length} keer${elke}</span>` : ""}</div>${gevoed}${tijden}</div>` : ""}
     ${heeft("kolven") ? `<div class="blok gekolfd"><div class="bkop">Gekolfd</div>${gekolfd}</div>` : ""}
     ${over || (heeft("kolven") && t.kolf) ? `<div class="blok over"><div class="bkop">Over</div>${regel(`${over} ml`, "gekolfde melk", "nog niet gegeven")}</div>` : ""}
-    ${heeft("luiers") ? `<div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · ${t.poep} poep` : "nog geen"}</span></div>${
-      t.luiers ? `<div class="tijden">${lijst.filter(isLuier).sort((x, y) => x.tijd - y.tijd).map((v) => `<span>${uurMin(v.tijd)} · ${luierTekst(v)}</span>`).join("")}</div>` : ""}</div>` : ""}
+    ${heeft("luiers") ? `<div class="blok luiers"><div class="bkop">Luiers<span>${t.luiers ? `${t.luiers} · ${t.nat} nat · <b class="poeptekst">${t.poep} poep</b>` : "nog geen"}</span></div>${
+      t.luiers ? `<div class="tijden">${lijst.filter(isLuier).sort((x, y) => x.tijd - y.tijd).map((v) => `<span class="${v.poep ? "poep" : ""}">${uurMin(v.tijd)} · ${luierTekst(v)}</span>`).join("")}</div>` : ""}</div>` : ""}
     ${heeft("slaap") ? `<div class="blok slaap"><div class="bkop">Slaap<span>${t.dutjes ? `${duurTekst(t.slaapMin * 60000)} · ${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}` : "nog niet"}</span></div>${
       t.dutjes ? `<div class="tijden">${lijst.filter(isSlaap).sort((x, y) => x.tijd - y.tijd).map((v) => `<span>${uurMin(v.tijd)}${v.eind ? ` tot ${uurMin(v.eind)}` : " · slaapt"}</span>`).join("")}</div>` : ""}</div>` : ""}`;
 }
@@ -1870,7 +1876,7 @@ function renderGisteren() {
     }
   }
   if (heeft("luiers")) {
-    tegels.push(tegel(t.luiers, t.luiers === 1 ? "luier" : "luiers", t.luiers ? `${t.nat} nat · ${t.poep} poep${t.droog ? ` · ${t.droog} droog` : ""}` : "", "", "luier"));
+    tegels.push(tegel(t.luiers, t.luiers === 1 ? "luier" : "luiers", t.luiers ? `<em class="poeptekst">${t.poep} poep</em> · ${t.nat} nat${t.droog ? ` · ${t.droog} droog` : ""}` : "", "", "luier"));
   }
   if (heeft("slaap") && t.dutjes) {
     tegels.push(tegel(duurTekst(t.slaapMin * 60000), "slaap", `${t.dutjes} keer · langste ${duurTekst(t.langsteSlaap * 60000)}`, trendTekst("slaapUur", "uur", "op"), "slaap"));
@@ -2110,8 +2116,8 @@ function renderOverzicht() {
     const volle = reeks.filter((x) => x.actief && !x.lopend && x.t.luiers);
     const gemPoep = volle.length ? (volle.reduce((s, x) => s + x.t.poep, 0) / volle.length).toFixed(1).replace(".", ",") : "0";
     staafgrafiek($("#g-luiers"), {
-      titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["luiers"], kleuren: [kleur("--luier")], legenda: ["luiers per dag"],
-      onderin: (x) => (x.t.poep ? `${x.t.poep} p` : ""), voetnoot: `In de staaf: hoeveel met poep. Gemiddeld ${gemPoep} met poep per dag.`,
+      titel: "Luiers" + per, eenheid: "luiers", reeks, delen: ["poep", "zonderPoep"], kleuren: [kleur("--poep"), kleur("--luier")], legenda: ["met poep", "nat of droog"],
+      onderin: (x) => (x.t.poep ? `${x.t.poep}` : ""), voetnoot: `Het bruine deel is met poep, met het aantal erin. Gemiddeld ${gemPoep} met poep per dag.`,
     });
   }
   const pauze = $("#g-pauze");

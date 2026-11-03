@@ -20,6 +20,9 @@ ok("fles van Jaimy komt bij Aisha", /Kunstvoeding\s*105 ml/.test(await tekst(A.p
 await A.p.click("#luierkaart [data-luier=nat]");
 await J.p.waitForTimeout(1500);
 ok("luier van Aisha komt bij Jaimy", /Luier\s*nat/.test(await tekst(J.p, "#geschiedenis")));
+await A.p.click("#luierkaart [data-luier=poep]");
+await J.p.waitForTimeout(1200);
+ok("poepluier: eigen kleur in geschiedenis, chip in Vandaag en 'laatste poep' op de kaart", Boolean(await J.p.$(".iregel.luier.poep")) && Boolean(await J.p.$("#totalen-vandaag .tijden span.poep")) && (await tekst(J.p, "#laatste-poep")) === "" && /poep · zojuist/.test(await tekst(J.p, "#laatste-luier")), await tekst(J.p, "#laatste-poep"));
 
 // Borsttimer gedeeld.
 await J.p.click(".modus [data-modus=borst]");

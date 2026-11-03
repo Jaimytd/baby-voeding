@@ -34,7 +34,7 @@ ok("streef niet groen", (await p.$$eval("#gisteren .streef.gehaald", (x) => x.le
   ok("vijf tegels: de laatste over de volle breedte", tegels.length === 5 && tegels[4] > tegels[0] * 1.8, tegels.join(","));
 }
 ok("tijd tussen voedingen als staven met streeflijn", (await p.$$eval("#g-pauze rect", (x) => x.length)) >= 1 && Boolean(await p.$("#g-pauze .streeflijn")) && /gem\. 3:00 tussen voedingen/.test(await tekst(p, "#g-pauze")), (await tekst(p, "#g-pauze")).slice(0, 80));
-ok("luiers: één staaf per dag met poep erin", /luiers per dag/.test(await tekst(p, "#g-luiers")) && /met poep per dag/.test(await tekst(p, "#g-luiers")));
+ok("luiers: poep als bruin deel met aantal erin", /met poep/.test(await tekst(p, "#g-luiers")) && (await p.$$eval("#g-luiers rect", (x) => x.length)) >= 1 && /met poep per dag/.test(await tekst(p, "#g-luiers")));
 ok("dagritme onder Meer", await p.$eval("#g-ritme", (e) => e.closest("#meer") !== null));
 // Grafieken: streeflijn bij pauze en per fles.
 ok("pauzegrafiek: streeflijn 4 u", Boolean(await p.$("#g-pauze .streeflijn")) && /streef 4 u/.test(await tekst(p, "#g-pauze")));

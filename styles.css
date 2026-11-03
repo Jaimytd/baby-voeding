@@ -960,3 +960,10 @@ body[data-thema="verjaardag"] { --t-rank: url("data:image/svg+xml,%3Csvg xmlns='
 .geslachtkeuze { display: grid; grid-template-columns: 1fr 1fr; }
 .geslachtkeuze button { min-height: 40px; font-size: 14px; }
 .geslachtkeuze button.aan { background: var(--primair); color: var(--primair-tekst); }
+
+/* poepluiers duidelijk herkenbaar */
+.poeptekst { color: var(--poep); font-weight: 700; font-style: normal; }
+.iregel.luier.poep .ikop i { background: var(--poep); }
+.tijden span.poep { background: color-mix(in srgb, var(--poep) 18%, var(--veld)); color: var(--poep); font-weight: 600; }
+.poepregel { margin: -4px 0 8px; }
+.poepregel:empty { display: none; }
