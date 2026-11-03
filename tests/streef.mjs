@@ -25,7 +25,7 @@ ok("bovenaan: gemiddeld met streef 4 u", (await tekst(p, "#v-gem small")) === "s
 {
   const vandaag = await p.$$eval(".dag[data-dag] >> nth=0 >> .tussen", (x) => x.map((g) => g.textContent.trim() + (g.classList.contains("gehaald") ? "!" : "")));
   const gisteren = await p.$$eval(".dag[data-dag] >> nth=1 >> .tussen", (x) => x.map((g) => g.textContent.trim()));
-  ok("geschiedenis: vandaag één pauze van 3 u 00, gisteren zes", vandaag.join("|") === "3 u 00" && gisteren.join("|") === "3 u 00|3 u 00|3 u 00|3 u 00|3 u 00|3 u 00", vandaag.join("|") + " / " + gisteren.join("|"));
+  ok("geschiedenis: 'na 3 u 00' achter de hoeveelheid, vandaag één keer, gisteren zes", vandaag.join("|") === "na 3 u 00" && gisteren.join("|") === "na 3 u 00|na 3 u 00|na 3 u 00|na 3 u 00|na 3 u 00|na 3 u 00" && (await p.$eval(".dag[data-dag] >> nth=0 >> .tussen", (e) => e.closest(".ikop") !== null)), vandaag.join("|") + " / " + gisteren.join("|"));
   ok("Vandaag toont alleen totalen", !(await p.$("#totalen-vandaag .tijden")) && !(await p.$("#totalen-vandaag .tijdlijn")));
 }
 

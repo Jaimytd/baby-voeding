@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "52";
+const APP_VERSIE = "53";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -138,7 +138,7 @@ function regels(v) {
   const kunst = getal(v.kunst);
   const mm = getal(v.kolf);
   if (kunst && mm) uit.push({ soort: "fles", wat: "Fles", hoeveel: `${kunst + mm} ml`, detail: `${kunst} kunstvoeding + ${mm} moedermelk` });
-  else if (kunst) uit.push({ soort: "fles", wat: "Kunstvoeding", hoeveel: `${kunst} ml`, detail: "" });
+  else if (kunst) uit.push({ soort: "fles", wat: heeft("kolven") ? "Kunstvoeding" : "Fles", hoeveel: `${kunst} ml`, detail: "" });  // zonder kolven is er maar één soort fles
   else if (mm) uit.push({ soort: "mm", wat: "Moedermelk", hoeveel: `${mm} ml`, detail: "" });
   const L = getal(v.borstL);
   const R = getal(v.borstR);
@@ -1701,12 +1701,12 @@ function renderLijst() {
   const vandaag = dagStart(Date.now());
   const vandaagLijst = voedingen.filter((v) => dagStart(v.tijd) === vandaag);
   $("#totalen-vandaag").innerHTML = dagBlok(totalen(vandaagLijst), vandaagLijst);
-  // Tijd tussen de voedingen: onder de vroegste registratie van elk voedmoment komt de pauze
-  // sinds het voedmoment ervoor (ook over de nacht heen, tot 12 uur).
+  // Tijd tussen de voedingen: achter de vroegste registratie van elk voedmoment staat de pauze
+  // sinds het voedmoment ervoor, "na 3 u 15" (ook over de nacht heen, tot 12 uur).
   const momenten = voedmomenten(voedingen);
   const pauzeVoor = new Map();
   momenten.forEach((m, i) => { if (i && m.tijd - momenten[i - 1].tijd <= MAX_PAUZE) pauzeVoor.set(m.items[0].id, m.tijd - momenten[i - 1].tijd); });
-  const tussen = (id) => (pauzeVoor.has(id) ? `<div class="tussen${pauzeVoor.get(id) >= streefUur() * 36e5 ? " gehaald" : ""}"><i></i>${duurTekst(pauzeVoor.get(id))}</div>` : "");
+  const tussen = (id) => (pauzeVoor.has(id) ? `<span class="tussen${pauzeVoor.get(id) >= streefUur() * 36e5 ? " gehaald" : ""}">na ${duurTekst(pauzeVoor.get(id))}</span>` : "");
 
   const perDag = new Map();
   for (const v of voedingen) {
@@ -1721,9 +1721,9 @@ function renderLijst() {
     const rijen = lijst.map((v) => `
       <button class="item" data-id="${esc(v.id)}">
         <span class="item-tijd">${uurMin(v.tijd)}</span>
-        <span class="item-delen">${regels(v).map((g) => `<span class="iregel ${g.soort}"><span class="ikop"><i></i>${g.wat} <b>${esc(g.hoeveel)}</b></span>${g.detail ? `<span class="idetail">${esc(g.detail)}</span>` : ""}</span>`).join("")}</span>
+        <span class="item-delen">${regels(v).map((g, gi) => `<span class="iregel ${g.soort}"><span class="ikop"><i></i>${g.wat} <b>${esc(g.hoeveel)}</b>${gi ? "" : tussen(v.id)}</span>${g.detail ? `<span class="idetail">${esc(g.detail)}</span>` : ""}</span>`).join("")}</span>
         <span class="item-door">${esc(v.door || "")}</span>
-      </button>${tussen(v.id)}`).join("");
+      </button>`).join("");
     return `<div class="dag" data-dag="${d}"><div class="dagkop"><span>${dagLabel(d)}</span><span>${samenvatting}</span></div>${rijen}</div>`;
   }).join("");
   const meer = dagen.length > dagenZichtbaar ? `<button id="meer" class="secundair breed">Meer dagen tonen</button>` : "";

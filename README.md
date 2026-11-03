@@ -43,7 +43,7 @@ Kies bovenaan **Borst**, **Fles** of **Kolven**. De opslaanknop staat altijd ond
 - **Kolven:** timer of minuten voor de duur, en opbrengst links en rechts. Het totaal staat op de opslaanknop.
 - **Luier:** één tik op **Nat**, **Poep** of **Beide**. Ernaast staat wanneer de laatste luier was.
 
-Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan de totalen. In de **Geschiedenis** staat tussen twee voedingen de tijd ertussen, groen als die het streef haalt; ook over de nacht heen. Borst en fles binnen 45 minuten tellen samen als één voeding.
+Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan de totalen. In de **Geschiedenis** staat achter elke voeding hoe lang na de vorige die was ("na 3 u 15"), groen als dat het streef haalt; ook over de nacht heen. Borst en fles binnen 45 minuten tellen samen als één voeding.
 
 De lopende timers zijn gedeeld: start Aisha links, dan ziet Jaimy hem ook lopen. Bovenaan staat dan "Nu bezig". Per ongeluk gestart? Tik op **Wissen**. Na opslaan kun je 6 seconden **Ongedaan maken**.
 
