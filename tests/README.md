@@ -22,3 +22,4 @@ APP=http://localhost:8765/ EMU=localhost:8080 FIREBASE_PKG=/pad/naar/package PLA
 
 - `rook.mjs`: de belangrijkste handelingen op twee telefoons.
 - `streef.mjs`: streefwaarden en het bewerkvenster.
+- `seconden.mjs`: het streef op de minuut en bewerken zonder dat de seconden verschuiven.

@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "54";
+const APP_VERSIE = "55";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -455,6 +455,8 @@ let kind = ls.get("kind", {});  // { kind, geboortedatum }, gedeeld via de datab
 let streef = { uur: 4, ml: 175, ...ls.get("streef", {}) };
 const streefUur = () => Math.min(8, Math.max(1, Number(streef.uur) || 4));
 const streefMl = () => Math.min(400, Math.max(30, Number(streef.ml) || 175));
+// Op de minuut, net als de tekst: wat als "4 u 00" staat, is ook gehaald.
+const haaltStreef = (ms) => Math.round(ms / 60000) >= streefUur() * 60;
 
 // ---------- onderdelen aan/uit (per telefoon) ----------
 // Wat je niet bijhoudt, verdwijnt uit beeld; eerdere registraties blijven gewoon bestaan.
@@ -1646,7 +1648,7 @@ function renderLaatste() {
     cel("#v-streef", uurMin(bijStreef), `bij ${streefTekst()}`, relatief(bijStreef), heeft("fles"));
     $("#v-streef").classList.toggle("voorbij", bijStreef < Date.now() - 60000);
     cel("#v-gem", gem ? duurTekst(gem) : "", null, heeft("fles") ? `streef ${streefTekst()}` : `${pozen.length + 1} keer in 24 u`, gem > 0);
-    $("#v-gem").classList.toggle("gehaald", heeft("fles") && gem >= streefUur() * 36e5);
+    $("#v-gem").classList.toggle("gehaald", heeft("fles") && haaltStreef(gem));
   }
   renderKind();
   if (!MODI.some(modusAan)) {
@@ -1706,7 +1708,7 @@ function renderLijst() {
   const momenten = voedmomenten(voedingen);
   const pauzeVoor = new Map();
   momenten.forEach((m, i) => { if (i && m.tijd - momenten[i - 1].tijd <= MAX_PAUZE) pauzeVoor.set(m.items[0].id, m.tijd - momenten[i - 1].tijd); });
-  const tussen = (id) => (pauzeVoor.has(id) ? `<span class="tussen${pauzeVoor.get(id) >= streefUur() * 36e5 ? " gehaald" : ""}">na ${duurTekst(pauzeVoor.get(id))}</span>` : "");
+  const tussen = (id) => (pauzeVoor.has(id) ? `<span class="tussen${haaltStreef(pauzeVoor.get(id)) ? " gehaald" : ""}">na ${duurTekst(pauzeVoor.get(id))}</span>` : "");
 
   const perDag = new Map();
   for (const v of voedingen) {
@@ -1863,7 +1865,7 @@ function renderGisteren() {
     tegels.push(
       tegel(`${t.kunst} ml`, "kunstvoeding", heeft("kolven") && t.fles ? `+ ${t.fles} ml moedermelk` : "", trendTekst("kunst", "ml", null), "kunst"),
       tegel(t.flessen, t.flessen === 1 ? "fles" : "flessen", t.flessen ? `gem. ${t.perFles} ml <i class="streef ${t.perFles >= streefMl() ? "gehaald" : ""}">streef ${streefMl()}</i>` : "", trendTekst("flessen", "keer", null)),
-      p ? tegel(duurTekst(p.gem), "tussen flessen", `kortste ${duurTekst(p.min.duur)} <i class="streef ${p.gem >= streefUur() * 36e5 ? "gehaald" : ""}">streef ${streefTekst()}</i>`) : "",
+      p ? tegel(duurTekst(p.gem), "tussen flessen", `kortste ${duurTekst(p.min.duur)} <i class="streef ${haaltStreef(p.gem) ? "gehaald" : ""}">streef ${streefTekst()}</i>`) : "",
       p ? tegel(duurTekst(p.max.duur), "langste pauze", `${uurMin(p.max.van)} tot ${uurMin(p.max.tot)}`) : "",
     );
     // Vitamine K-richtlijn geldt alleen als de baby ook moedermelk krijgt.
@@ -2303,7 +2305,10 @@ dlgBewerk.addEventListener("close", () => {
   const oud = voedingen.find((x) => x.id === bewerkId);
   if (dlgBewerk.returnValue === "opslaan" && oud) {
     const tijd = new Date(`${$("#b-datum").value}T${isMeting(oud) ? "12:00" : $("#b-tijd").value || "00:00"}`).getTime();
-    const basis = { tijd: Number.isFinite(tijd) ? tijd : oud.tijd };
+    // Het tijdveld kent geen seconden. Is de tijd niet veranderd, dan blijft de oude tijd exact
+    // staan; anders schoof een voeding tot een minuut terug en kon "na 4 u 00" zijn groen verliezen.
+    const zelfdeMinuut = Number.isFinite(tijd) && Math.floor(oud.tijd / 60000) * 60000 === tijd;
+    const basis = { tijd: !Number.isFinite(tijd) || zelfdeMinuut ? oud.tijd : tijd };
     if (isLuier(oud)) {
       if (!$("#b-nat").checked && !$("#b-poep").checked) return toast("Kies nat, poep of allebei.");
       const opmerking = $("#b-opmerking").value.trim().slice(0, 200);
