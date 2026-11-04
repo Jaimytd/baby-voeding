@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "55";
+const APP_VERSIE = "56";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -455,8 +455,10 @@ let kind = ls.get("kind", {});  // { kind, geboortedatum }, gedeeld via de datab
 let streef = { uur: 4, ml: 175, ...ls.get("streef", {}) };
 const streefUur = () => Math.min(8, Math.max(1, Number(streef.uur) || 4));
 const streefMl = () => Math.min(400, Math.max(30, Number(streef.ml) || 175));
-// Op de minuut, net als de tekst: wat als "4 u 00" staat, is ook gehaald.
-const haaltStreef = (ms) => Math.round(ms / 60000) >= streefUur() * 60;
+// Met 5 minuten speling: vanaf 3 u 55 telt een pauze als 4 uur gehaald. Die minuten zijn
+// afrondings- en registratieruis, geen gemiste doel.
+const STREEF_SPELING = 5;
+const haaltStreef = (ms) => Math.round(ms / 60000) >= streefUur() * 60 - STREEF_SPELING;
 
 // ---------- onderdelen aan/uit (per telefoon) ----------
 // Wat je niet bijhoudt, verdwijnt uit beeld; eerdere registraties blijven gewoon bestaan.
