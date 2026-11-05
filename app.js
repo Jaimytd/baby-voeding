@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "58";
+const APP_VERSIE = "59";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {

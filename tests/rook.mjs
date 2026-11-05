@@ -9,6 +9,8 @@ const A = await telefoon(b, { gezin: G, naam: "Aisha", dev: "Pixel 7", fouten })
 
 // Fles op Jaimy, zichtbaar bij Aisha.
 await J.p.click(".modus [data-modus=fles]");
+await J.p.click('.soort[data-soort=kunst] .stap[data-stap="5"]');
+ok("plusknop fles telt 5 ml op", (await J.p.inputValue("#kunst")) === "5", await J.p.inputValue("#kunst"));
 await J.p.click('.soort[data-soort=kunst] .pil[data-ml="105"]');
 await J.p.click("#invoer .opslaan");
 await J.p.waitForTimeout(300);
