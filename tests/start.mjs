@@ -1,6 +1,6 @@
 // Het startscherm: laatste voeding, en de drie cellen verwacht, bij streef, gemiddeld.
 // Plus de tijd- en datumkiezers in het bewerkvenster met eigen opmaak.
-import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, op } from "./helper.mjs";
+import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, op, zetTijd, tijdWaarde } from "./helper.mjs";
 
 const b = await launch();
 const G = "start" + Date.now();
@@ -49,15 +49,14 @@ for (const u of [2, 6.5, 11]) await fles(G2, op(D, Math.floor(u), (u % 1) * 60),
 await p.waitForTimeout(500);
 ok("gemiddeld 4 u 30: groen", (await tekst(p, "#v-gem b")) === "4 u 30" && (await p.$eval("#v-gem", (e) => e.classList.contains("gehaald"))));
 
-// Bewerkvenster: eigen opmaak voor tijd en datum, native kiezer eroverheen.
+// Bewerkvenster: tijd als twee keuzelijsten (uur, minuut), datum met eigen opmaak en native kiezer eroverheen.
 await p.click(".iregel.fles >> nth=0");
-ok("tijdtekst 11:00 in 24-uursnotatie", (await tekst(p, "#b-tijd-tekst")) === "11:00");
+ok("tijdkeuze 11:00 in 24-uursnotatie, geen native tijdveld", (await tijdWaarde(p, "b-tijd")) === "11:00" && (await p.$eval("#b-tijd-uur", (e) => e.value)) === "11" && (await p.$$eval("#dlg-bewerk input[type=time]", (x) => x.length)) === 0);
+ok("uur en minuut: 24 en 60 keuzes", (await p.$$eval("#b-tijd-uur option", (x) => x.length)) === 24 && (await p.$$eval("#b-tijd-min option", (x) => x.length)) === 60);
 ok("datumtekst 'di 3 nov'", (await tekst(p, "#b-datum-tekst")) === "di 3 nov", await tekst(p, "#b-datum-tekst"));
-const bedekt = await p.evaluate(() => { const i = document.querySelector("#b-tijd"), t = document.querySelector("#b-tijd-tekst"); const a = i.getBoundingClientRect(), c = t.closest(".kiezer").getBoundingClientRect(); return Math.abs(a.left - c.left) < 3 && Math.abs(a.width - c.width) < 4 && getComputedStyle(i).opacity === "0"; });
-ok("native tijdkiezer ligt onzichtbaar over de tekst", bedekt);
-await p.fill("#b-tijd", "09:30");
+await zetTijd(p, "b-tijd", "09:30");
 await p.fill("#b-datum", "2026-11-01");
-ok("tekst volgt de invoer: 09:30 en zo 1 nov", (await tekst(p, "#b-tijd-tekst")) === "09:30" && (await tekst(p, "#b-datum-tekst")) === "zo 1 nov", (await tekst(p, "#b-datum-tekst")));
+ok("waarde volgt de keuze: 09:30 en zo 1 nov", (await tijdWaarde(p, "b-tijd")) === "09:30" && (await tekst(p, "#b-datum-tekst")) === "zo 1 nov", (await tekst(p, "#b-datum-tekst")));
 await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(400);
 ok("opgeslagen op zo 1 nov 09:30", /zo 1 nov/.test(await tekst(p, "#geschiedenis")) && /09:30/.test(await tekst(p, "#geschiedenis")), (await tekst(p, "#geschiedenis")).slice(0, 160));

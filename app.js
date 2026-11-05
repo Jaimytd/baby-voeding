@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "56";
+const APP_VERSIE = "57";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -2234,7 +2234,34 @@ function renderAlles() {
 // De native kiezer ligt onzichtbaar over de tekst, zodat tikken gewoon de klok of kalender
 // opent, maar de weergave op elke telefoon hetzelfde is (24 uur, "di 3 nov").
 const datumTekst = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }) : "");
-for (const [id, fmt, leeg] of [["b-tijd", (v) => v, ""], ["b-wakker", (v) => v, "Slaapt nog"], ["b-datum", datumTekst, ""], ["m-datum", datumTekst, ""]]) {
+// Tijd kiezen met twee keuzelijsten (uur en minuut). De tijdkiezer van de browser valt op
+// Android bij een grote letter buiten het scherm; een keuzelijst past altijd.
+function tijdkeuze(id, leeg) {
+  const uur = $(`#${id}-uur`);
+  const min = $(`#${id}-min`);
+  const inp = $(`#${id}`);
+  const dp = uur.nextElementSibling;
+  uur.innerHTML = (leeg ? `<option value="">${leeg}</option>` : "") + Array.from({ length: 24 }, (_, i) => `<option value="${pad(i)}">${pad(i)}</option>`).join("");
+  min.innerHTML = Array.from({ length: 60 }, (_, i) => `<option value="${pad(i)}">${pad(i)}</option>`).join("");
+  const toon = () => {
+    const [u, m] = (inp.value || "").split(":");
+    uur.value = u || "";
+    min.value = m || "00";
+    min.hidden = dp.hidden = !uur.value;
+    uur.classList.toggle("leeg", !uur.value);
+  };
+  const bij = () => {
+    inp.value = uur.value ? `${uur.value}:${min.value}` : "";
+    toon();
+    inp.dispatchEvent(new Event("change"));
+  };
+  uur.addEventListener("change", bij);
+  min.addEventListener("change", bij);
+  inp.toon = toon;
+}
+tijdkeuze("b-tijd");
+tijdkeuze("b-wakker", "slaapt nog");
+for (const [id, fmt, leeg] of [["b-datum", datumTekst, ""], ["m-datum", datumTekst, ""]]) {
   const inp = $("#" + id);
   const uit = $(`#${id}-tekst`);
   const toon = () => {

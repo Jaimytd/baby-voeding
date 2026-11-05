@@ -344,7 +344,7 @@
       </div>
       <div class="b-slaap" hidden>
         <label class="veld">Wakker om (leeg = slaapt nog)
-          <span class="kiezer groot"><output id="b-wakker-tekst">Slaapt nog</output><input type="time" id="b-wakker"></span>
+          <span class="kiezer groot tijdkeuze"><select id="b-wakker-uur" aria-label="Uur"></select><b class="dp">:</b><select id="b-wakker-min" aria-label="Minuut"></select><input type="hidden" id="b-wakker"></span>
         </label>
       </div>
       <div class="b-meting" hidden>
@@ -393,7 +393,7 @@
       </div>
       <div class="tijddatum">
         <label class="veld"><span id="b-tijdlabel">Tijd</span>
-          <span class="kiezer groot"><output id="b-tijd-tekst"></output><input type="time" id="b-tijd" required></span>
+          <span class="kiezer groot tijdkeuze"><select id="b-tijd-uur" aria-label="Uur"></select><b class="dp">:</b><select id="b-tijd-min" aria-label="Minuut"></select><input type="hidden" id="b-tijd"></span>
         </label>
         <label class="veld datumklein">Datum
           <span class="kiezer"><output id="b-datum-tekst"></output><input type="date" id="b-datum" required></span>

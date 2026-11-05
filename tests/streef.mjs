@@ -1,5 +1,5 @@
 // Streefwaarden (4 uur, 175 ml) en het bewerkvenster met tijd groot en datum klein.
-import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, luier, op, zetKind } from "./helper.mjs";
+import { launch, telefoon, ok, eind, tekst, zichtbaar, fles, luier, op, zetKind, zetTijd, tijdWaarde } from "./helper.mjs";
 
 const b = await launch();
 const G = "streef" + Date.now();
@@ -68,9 +68,9 @@ await p.click(".tabbar [data-tab=registreren]");
 
 // Bewerken: tijd groot, datum klein, knoppen onder elkaar.
 await p.click(".iregel.fles >> nth=0");
-ok("bewerken: tijdveld (type time) met 11:00", (await p.getAttribute("#b-tijd", "type")) === "time" && (await p.inputValue("#b-tijd")) === "11:00", await p.inputValue("#b-tijd"));
+ok("bewerken: tijdkeuze uur 11, minuut 00", (await p.$eval("#b-tijd-uur", (e) => e.value)) === "11" && (await p.$eval("#b-tijd-min", (e) => e.value)) === "00" && (await tijdWaarde(p, "b-tijd")) === "11:00", await tijdWaarde(p, "b-tijd"));
 ok("bewerken: datumveld met vandaag", (await p.getAttribute("#b-datum", "type")) === "date" && (await p.inputValue("#b-datum")) === D);
-const tijdH = await p.$eval("#b-tijd-tekst", (e) => e.closest(".kiezer").getBoundingClientRect().height);
+const tijdH = await p.$eval("#b-tijd-uur", (e) => e.closest(".kiezer").getBoundingClientRect().height);
 const datumH = await p.$eval("#b-datum-tekst", (e) => e.closest(".kiezer").getBoundingClientRect().height);
 ok("tijdveld groter dan datumveld", tijdH > datumH, `${tijdH} vs ${datumH}`);
 const knoppen = await p.$$eval("#form-bewerk .knoppen button", (x) => x.filter((b) => b.getClientRects().length).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) }; }));
@@ -79,7 +79,7 @@ ok("knoppen Opslaan, Annuleren, Verwijderen overlappen niet", !overlap && knoppe
 ok("alle knoppen binnen het scherm", knoppen.every((k) => k.bottom <= 844 && k.left >= 0), JSON.stringify(knoppen));
 await p.screenshot({ path: process.env.SHOT_DIR ? process.env.SHOT_DIR + "/s-bewerk.png" : "/dev/null" }).catch(() => {});
 // Tijd aanpassen naar 11:20, opslaan.
-await p.fill("#b-tijd", "11:20");
+await zetTijd(p, "b-tijd", "11:20");
 await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(500);
 ok("tijd aangepast naar 11:20, datum gelijk", /11:20/.test(await tekst(p, "#geschiedenis")) && /Vandaag/.test(await tekst(p, "#geschiedenis")), (await tekst(p, "#geschiedenis")).slice(0, 80));
@@ -91,7 +91,7 @@ await p.waitForTimeout(500);
 ok("datum aangepast: nog één fles vandaag", (await p.$$eval('.dag[data-dag] >> nth=0 >> .iregel.fles', (x) => x.length)) === 1);
 // Annuleren verandert niets.
 await p.click(".iregel.fles >> nth=0");
-await p.fill("#b-tijd", "03:33");
+await zetTijd(p, "b-tijd", "03:33");
 await p.click("#form-bewerk button[value=annuleer]");
 await p.waitForTimeout(300);
 ok("annuleren laat de tijd staan", !/03:33/.test(await tekst(p, "#geschiedenis")));
@@ -104,9 +104,9 @@ await p.waitForTimeout(400);
 await p.click("#slaap-knop");
 await p.waitForTimeout(400);
 await p.click(".iregel.slaap");
-await p.fill("#b-tijd", "22:00");
+await zetTijd(p, "b-tijd", "22:00");
 await p.fill("#b-datum", "2026-11-02");
-await p.fill("#b-wakker", "06:30");
+await zetTijd(p, "b-wakker", "06:30");
 await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(500);
 ok("slaap 22:00 tot 06:30 over middernacht = 8 u 30", /Slaap 8 u 30/.test(await tekst(p, "#geschiedenis")), (await tekst(p, "#geschiedenis")).slice(0, 120));
@@ -139,7 +139,7 @@ await p.click("#knop-instellingen");
 await p.click(".geslachtkeuze [data-geslacht=meisje]");
 await p.click("#dlg-instellingen button[value=sluit]");
 await p.click("#groei tr.tikbaar >> nth=0");
-ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd")) && (await zichtbaar(p, "#b-datum")));
+ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd-uur")) && (await zichtbaar(p, "#b-datum")));
 await p.keyboard.press("Escape");
 
 ok("geen JS-fouten", fouten.length === 0, fouten.join(" | "));

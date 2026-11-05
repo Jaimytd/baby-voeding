@@ -1,6 +1,6 @@
 // Het streef met 5 minuten speling: vanaf "na 3 u 55" groen, en bewerken van
 // alleen de hoeveelheid laat de tijd (met seconden) exact staan.
-import { launch, telefoon, ok, eind, tekst, fles, op } from "./helper.mjs";
+import { launch, telefoon, ok, eind, tekst, fles, op, zetTijd, tijdWaarde } from "./helper.mjs";
 
 const b = await launch();
 const G = "seconden" + Date.now();
@@ -19,7 +19,7 @@ ok("na 4 u 00, 4 u 01 en 3 u 55 groen; na 3 u 54 niet", (await pauzes()).join("|
 
 // Alleen de hoeveelheid aanpassen: de tijd blijft 14:00:50, dus nog steeds precies 4 u.
 await p.click(".iregel.fles >> nth=0");
-ok("bewerken toont 14:00", (await p.inputValue("#b-tijd")) === "14:00");
+ok("bewerken toont 14:00", (await tijdWaarde(p, "b-tijd")) === "14:00");
 await p.fill("#b-kunst", "175");
 await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(500);
@@ -27,7 +27,7 @@ ok("na bijvoeden: 175 ml en nog steeds 'na 4 u 00' groen", /175 ml/.test(await t
 
 // De tijd wel aanpassen werkt gewoon.
 await p.click(".iregel.fles >> nth=0");
-await p.fill("#b-tijd", "14:05");
+await zetTijd(p, "b-tijd", "14:05");
 await p.click("#form-bewerk button[value=opslaan]");
 await p.waitForTimeout(500);
 ok("tijd naar 14:05: 'na 4 u 04'", (await pauzes())[0] === "na 4 u 04!", (await pauzes()).join("|"));
