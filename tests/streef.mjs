@@ -68,9 +68,9 @@ await p.click(".tabbar [data-tab=registreren]");
 
 // Bewerken: tijd groot, datum klein, knoppen onder elkaar.
 await p.click(".iregel.fles >> nth=0");
-ok("bewerken: tijdkeuze uur 11, minuut 00", (await p.$eval("#b-tijd-uur", (e) => e.value)) === "11" && (await p.$eval("#b-tijd-min", (e) => e.value)) === "00" && (await tijdWaarde(p, "b-tijd")) === "11:00", await tijdWaarde(p, "b-tijd"));
+ok("bewerken: tijdveld toont 11:00", (await p.inputValue("#b-tijd-veld")) === "11:00" && (await tijdWaarde(p, "b-tijd")) === "11:00", await tijdWaarde(p, "b-tijd"));
 ok("bewerken: datumveld met vandaag", (await p.getAttribute("#b-datum", "type")) === "date" && (await p.inputValue("#b-datum")) === D);
-const tijdH = await p.$eval("#b-tijd-uur", (e) => e.closest(".kiezer").getBoundingClientRect().height);
+const tijdH = await p.$eval("#b-tijd-veld", (e) => e.closest(".kiezer").getBoundingClientRect().height);
 const datumH = await p.$eval("#b-datum-tekst", (e) => e.closest(".kiezer").getBoundingClientRect().height);
 ok("tijdveld groter dan datumveld", tijdH > datumH, `${tijdH} vs ${datumH}`);
 const knoppen = await p.$$eval("#form-bewerk .knoppen button", (x) => x.filter((b) => b.getClientRects().length).map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right) }; }));
@@ -139,7 +139,7 @@ await p.click("#knop-instellingen");
 await p.click(".geslachtkeuze [data-geslacht=meisje]");
 await p.click("#dlg-instellingen button[value=sluit]");
 await p.click("#groei tr.tikbaar >> nth=0");
-ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd-uur")) && (await zichtbaar(p, "#b-datum")));
+ok("meting bewerken: geen tijdveld, wel datum", !(await zichtbaar(p, "#b-tijd-veld")) && (await zichtbaar(p, "#b-datum")));
 await p.keyboard.press("Escape");
 
 ok("geen JS-fouten", fouten.length === 0, fouten.join(" | "));

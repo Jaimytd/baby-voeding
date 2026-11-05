@@ -46,11 +46,10 @@ export async function telefoon(browser, { gezin, naam = "Jaimy", dev = "iPhone 1
 
 export const tekst = async (p, sel) => ((await p.textContent(sel)) || "").replace(/\s+/g, " ").trim();
 export const zichtbaar = (p, sel) => p.$eval(sel, (e) => e.getClientRects().length > 0).catch(() => false);
-// Tijdkeuze in het bewerkvenster: uur en minuut als keuzelijsten; "" maakt leeg (wakker: slaapt nog).
+// Tijdkeuze in het bewerkvenster: cijfers intikken; "" maakt leeg (wakker: slaapt nog).
 export const zetTijd = async (p, id, hhmm) => {
-  const [u, m] = hhmm.split(":");
-  await p.selectOption(`#${id}-uur`, u || "");
-  if (u) await p.selectOption(`#${id}-min`, m);
+  await p.fill(`#${id}-veld`, hhmm.replace(":", ""));
+  await p.$eval(`#${id}-veld`, (e) => e.blur());
 };
 export const tijdWaarde = (p, id) => p.$eval(`#${id}`, (e) => e.value);
 

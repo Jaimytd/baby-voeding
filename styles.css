@@ -115,12 +115,13 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px; }
 .kiezer { position: relative; display: flex; align-items: center; min-height: 48px; border: 1px solid var(--lijn); border-radius: 12px; padding: 0 12px; background: var(--veld); color: var(--tekst); font-size: 16px; }
 .kiezer.groot { min-height: 56px; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .kiezer output.leeg { color: var(--zacht); font-weight: 500; font-size: 16px; }
-.kiezer input:not([type=hidden]) { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: 0; }
-.kiezer.tijdkeuze { gap: 2px; padding: 0 6px; }
-.kiezer select { appearance: none; -webkit-appearance: none; background: none; border: 0; color: inherit; font: inherit; padding: 0 6px; min-height: 44px; text-align: center; border-radius: 8px; }
-.kiezer select:focus { outline: none; background: color-mix(in srgb, var(--primair) 12%, transparent); }
-.kiezer select.leeg { color: var(--zacht); font-weight: 500; font-size: 16px; }
-.kiezer .dp { font-weight: 700; }
+.kiezer:not(.tijdkeuze) input:not([type=hidden]) { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: 0; }
+.kiezer.tijdkeuze { gap: 4px; padding: 0 4px; }
+.kiezer.tijdkeuze input[type=text] { flex: 1; min-width: 0; width: 100%; text-align: center; font: inherit; border: 0; background: none; color: inherit; min-height: 44px; padding: 0; margin: 0; }
+.kiezer.tijdkeuze input[type=text]:focus { outline: none; }
+.kiezer.tijdkeuze input::placeholder { color: var(--zacht); font-weight: 500; font-size: 16px; }
+.tijdstap { flex: none; width: 44px; height: 40px; border-radius: 10px; border: 0; background: var(--kaart); color: var(--tekst); font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1; box-shadow: 0 0 0 1px var(--lijn); }
+.tijdstap:active { background: var(--lijn); }
 .kiezer:focus-within { outline: 2px solid var(--primair); outline-offset: 1px; }
 .laatste .detail { color: var(--zacht); font-size: 15px; margin-top: 2px; }
 

@@ -49,10 +49,22 @@ for (const u of [2, 6.5, 11]) await fles(G2, op(D, Math.floor(u), (u % 1) * 60),
 await p.waitForTimeout(500);
 ok("gemiddeld 4 u 30: groen", (await tekst(p, "#v-gem b")) === "4 u 30" && (await p.$eval("#v-gem", (e) => e.classList.contains("gehaald"))));
 
-// Bewerkvenster: tijd als twee keuzelijsten (uur, minuut), datum met eigen opmaak en native kiezer eroverheen.
+// Bewerkvenster: tijd intikken of met -5/+5, datum met eigen opmaak en native kiezer eroverheen.
 await p.click(".iregel.fles >> nth=0");
-ok("tijdkeuze 11:00 in 24-uursnotatie, geen native tijdveld", (await tijdWaarde(p, "b-tijd")) === "11:00" && (await p.$eval("#b-tijd-uur", (e) => e.value)) === "11" && (await p.$$eval("#dlg-bewerk input[type=time]", (x) => x.length)) === 0);
-ok("uur en minuut: 24 en 60 keuzes", (await p.$$eval("#b-tijd-uur option", (x) => x.length)) === 24 && (await p.$$eval("#b-tijd-min option", (x) => x.length)) === 60);
+ok("tijdveld 11:00 in 24-uursnotatie, geen native tijdkiezer of keuzelijst", (await p.inputValue("#b-tijd-veld")) === "11:00" && (await tijdWaarde(p, "b-tijd")) === "11:00" && (await p.$$eval("#dlg-bewerk input[type=time], #dlg-bewerk .tijdkeuze select", (x) => x.length)) === 0);
+await p.click("#b-tijd-veld ~ .tijdstap[data-stap='5']");
+await p.click("#b-tijd-veld ~ .tijdstap[data-stap='5']");
+await p.click(".tijdstap[data-stap='-5'] + #b-tijd-veld");
+ok("+5 +5: 11:10", (await tijdWaarde(p, "b-tijd")) === "11:10" && (await p.inputValue("#b-tijd-veld")) === "11:10", await tijdWaarde(p, "b-tijd"));
+await p.type("#b-tijd-veld", "935");
+await p.$eval("#b-tijd-veld", (e) => e.blur());
+ok("'935' ingetikt wordt 09:35", (await tijdWaarde(p, "b-tijd")) === "09:35", await tijdWaarde(p, "b-tijd"));
+await p.fill("#b-tijd-veld", "2599");
+await p.$eval("#b-tijd-veld", (e) => e.blur());
+ok("ongeldig '2599' valt terug op 09:35", (await tijdWaarde(p, "b-tijd")) === "09:35" && (await p.inputValue("#b-tijd-veld")) === "09:35");
+await p.fill("#b-tijd-veld", "");
+await p.$eval("#b-tijd-veld", (e) => e.blur());
+ok("leeg laten houdt de tijd", (await tijdWaarde(p, "b-tijd")) === "09:35");
 ok("datumtekst 'di 3 nov'", (await tekst(p, "#b-datum-tekst")) === "di 3 nov", await tekst(p, "#b-datum-tekst"));
 await zetTijd(p, "b-tijd", "09:30");
 await p.fill("#b-datum", "2026-11-01");

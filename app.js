@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "57";
+const APP_VERSIE = "58";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -2234,33 +2234,42 @@ function renderAlles() {
 // De native kiezer ligt onzichtbaar over de tekst, zodat tikken gewoon de klok of kalender
 // opent, maar de weergave op elke telefoon hetzelfde is (24 uur, "di 3 nov").
 const datumTekst = (iso) => (iso ? new Date(iso + "T12:00:00").toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" }) : "");
-// Tijd kiezen met twee keuzelijsten (uur en minuut). De tijdkiezer van de browser valt op
-// Android bij een grote letter buiten het scherm; een keuzelijst past altijd.
-function tijdkeuze(id, leeg) {
-  const uur = $(`#${id}-uur`);
-  const min = $(`#${id}-min`);
+// Tijd kiezen zonder venster van de telefoon: intikken met het cijfertoetsenbord ("1520" wordt
+// 15:20) en knoppen voor 5 minuten eerder of later. De tijdkiezer en keuzelijsten van Android
+// vallen bij een grote letter buiten het scherm; dit past altijd.
+function tijdkeuze(id, verplicht) {
+  const veld = $(`#${id}-veld`);
   const inp = $(`#${id}`);
-  const dp = uur.nextElementSibling;
-  uur.innerHTML = (leeg ? `<option value="">${leeg}</option>` : "") + Array.from({ length: 24 }, (_, i) => `<option value="${pad(i)}">${pad(i)}</option>`).join("");
-  min.innerHTML = Array.from({ length: 60 }, (_, i) => `<option value="${pad(i)}">${pad(i)}</option>`).join("");
-  const toon = () => {
-    const [u, m] = (inp.value || "").split(":");
-    uur.value = u || "";
-    min.value = m || "00";
-    min.hidden = dp.hidden = !uur.value;
-    uur.classList.toggle("leeg", !uur.value);
-  };
-  const bij = () => {
-    inp.value = uur.value ? `${uur.value}:${min.value}` : "";
-    toon();
-    inp.dispatchEvent(new Event("change"));
-  };
-  uur.addEventListener("change", bij);
-  min.addEventListener("change", bij);
+  const geldig = (s) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+  const toon = () => { veld.value = inp.value || ""; };
+  const zet = (s) => { inp.value = s; toon(); inp.dispatchEvent(new Event("change")); };
+  veld.addEventListener("input", () => {
+    const d = veld.value.replace(/\D/g, "").slice(0, 4);
+    veld.value = d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2)}` : d;
+    if (d.length === 4 && geldig(veld.value)) zet(veld.value);
+  });
+  // Bij verlaten: "9" of "09" wordt 09:00, "930" wordt 09:30; iets ongeldigs valt terug.
+  veld.addEventListener("blur", () => {
+    const d = veld.value.replace(/\D/g, "");
+    let s = null;
+    if (!d) s = verplicht ? inp.value : "";
+    else if (d.length <= 2 && Number(d) < 24) s = `${pad(Number(d))}:00`;
+    else if (d.length === 3 && geldig(`0${d[0]}:${d.slice(1)}`)) s = `0${d[0]}:${d.slice(1)}`;
+    else if (d.length === 4 && geldig(`${d.slice(0, 2)}:${d.slice(2)}`)) s = `${d.slice(0, 2)}:${d.slice(2)}`;
+    if (s === null) toon(); else zet(s);
+  });
+  veld.addEventListener("focus", () => veld.select());
+  for (const b of veld.parentElement.querySelectorAll(".tijdstap")) {
+    b.addEventListener("click", () => {
+      const [u, m] = (inp.value || (verplicht ? "00:00" : uurMin(Date.now()))).split(":").map(Number);
+      const t = Math.min(23 * 60 + 59, Math.max(0, u * 60 + m + Number(b.dataset.stap)));
+      zet(`${pad(Math.floor(t / 60))}:${pad(t % 60)}`);
+    });
+  }
   inp.toon = toon;
 }
-tijdkeuze("b-tijd");
-tijdkeuze("b-wakker", "slaapt nog");
+tijdkeuze("b-tijd", true);
+tijdkeuze("b-wakker", false);
 for (const [id, fmt, leeg] of [["b-datum", datumTekst, ""], ["m-datum", datumTekst, ""]]) {
   const inp = $("#" + id);
   const uit = $(`#${id}-tekst`);

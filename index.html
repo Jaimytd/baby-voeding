@@ -95,9 +95,9 @@
         <div class="soort" data-soort="kolf" data-deel="kolven">
           <div class="soortkop"><span class="stip fles"></span>Moedermelk (fles)<span id="voorraad-kop" class="hint"></span></div>
           <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <button type="button" class="tijdstap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolf" aria-label="Moedermelk (fles) in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+            <button type="button" class="tijdstap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
           <div id="voorraad" class="voorraad" hidden></div>
@@ -106,9 +106,9 @@
         <div class="soort" data-soort="kunst" data-deel="fles">
           <div class="soortkop"><span class="stip kunst"></span>Kunstvoeding (fles)</div>
           <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <button type="button" class="tijdstap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kunst" aria-label="Kunstvoeding (fles) in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+            <button type="button" class="tijdstap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
         </div>
@@ -173,9 +173,9 @@
         <div class="soort" data-soort="kolfL">
           <div class="soortkop"><span class="stip kolf"></span>Links</div>
           <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <button type="button" class="tijdstap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfL" aria-label="Opbrengst links in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+            <button type="button" class="tijdstap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
         </div>
@@ -183,9 +183,9 @@
         <div class="soort" data-soort="kolfR">
           <div class="soortkop"><span class="stip kolf"></span>Rechts</div>
           <div class="stepper">
-            <button type="button" class="stap" data-stap="-5" aria-label="5 ml minder">−</button>
+            <button type="button" class="tijdstap" data-stap="-5" aria-label="5 ml minder">−</button>
             <label class="waarde"><input type="number" inputmode="numeric" min="0" max="1000" step="1" value="0" id="kolfR" aria-label="Opbrengst rechts in ml"><span>ml</span></label>
-            <button type="button" class="stap" data-stap="5" aria-label="5 ml meer">+</button>
+            <button type="button" class="tijdstap" data-stap="5" aria-label="5 ml meer">+</button>
           </div>
           <div class="chips"></div>
         </div>
@@ -344,7 +344,7 @@
       </div>
       <div class="b-slaap" hidden>
         <label class="veld">Wakker om (leeg = slaapt nog)
-          <span class="kiezer groot tijdkeuze"><select id="b-wakker-uur" aria-label="Uur"></select><b class="dp">:</b><select id="b-wakker-min" aria-label="Minuut"></select><input type="hidden" id="b-wakker"></span>
+          <span class="kiezer groot tijdkeuze"><button type="button" class="tijdstap" data-stap="-5" aria-label="5 minuten eerder">-5</button><input type="text" inputmode="numeric" autocomplete="off" id="b-wakker-veld" placeholder="slaapt nog" maxlength="5" aria-label="Wakker om"><button type="button" class="tijdstap" data-stap="5" aria-label="5 minuten later">+5</button><input type="hidden" id="b-wakker"></span>
         </label>
       </div>
       <div class="b-meting" hidden>
@@ -393,7 +393,7 @@
       </div>
       <div class="tijddatum">
         <label class="veld"><span id="b-tijdlabel">Tijd</span>
-          <span class="kiezer groot tijdkeuze"><select id="b-tijd-uur" aria-label="Uur"></select><b class="dp">:</b><select id="b-tijd-min" aria-label="Minuut"></select><input type="hidden" id="b-tijd"></span>
+          <span class="kiezer groot tijdkeuze"><button type="button" class="tijdstap" data-stap="-5" aria-label="5 minuten eerder">-5</button><input type="text" inputmode="numeric" autocomplete="off" id="b-tijd-veld" placeholder="uu:mm" maxlength="5" aria-label="Tijd"><button type="button" class="tijdstap" data-stap="5" aria-label="5 minuten later">+5</button><input type="hidden" id="b-tijd"></span>
         </label>
         <label class="veld datumklein">Datum
           <span class="kiezer"><output id="b-datum-tekst"></output><input type="date" id="b-datum" required></span>
