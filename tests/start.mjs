@@ -87,5 +87,18 @@ await ctx.close();
 await p.waitForTimeout(500);
 ok("zonder thema gewone tekst", (await p.$eval("#leeftijd", (e) => getComputedStyle(e).backgroundColor)) === "rgba(0, 0, 0, 0)");
 
+// Streef kiezen vanaf het startscherm: tik op de cel "bij 4 u".
+await p.click("#v-streef");
+ok("streefvenster open met 4 u en 175 ml gekozen", (await p.$eval("#dlg-streef", (d) => d.open)) && (await tekst(p, "#streef-uren .pil.gekozen")) === "4 u" && (await tekst(p, "#streef-mls .pil.gekozen")) === "175 ml");
+await p.click('#streef-uren [data-uur="3.5"]');
+await p.click('#streef-mls [data-ml="140"]');
+await p.click("#dlg-streef button[value=sluit]");
+await p.waitForTimeout(300);
+ok("streef 3 u 30: cel 'bij 3 u 30', gemiddeld toont streef 3 u 30", (await tekst(p, "#v-streef span")) === "bij 3 u 30" && (await tekst(p, "#v-gem small")) === "streef 3 u 30", await tekst(p, "#v-streef"));
+if (process.env.SHOT_DIR) { await p.click("#v-streef"); await p.screenshot({ path: process.env.SHOT_DIR + "/s-streef.png" }); await p.click("#dlg-streef button[value=sluit]"); }
+await p.click("#knop-instellingen");
+ok("instellingen volgen: 3.5 en 140", (await p.inputValue("#i-streef-uur")) === "3.5" && (await p.inputValue("#i-streef-ml")) === "140");
+await p.click("#dlg-instellingen button[value=sluit]");
+
 ok("geen JS-fouten", fouten.length === 0, fouten.join(" | "));
 await eind(b);

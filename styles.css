@@ -977,3 +977,11 @@ body[data-thema="verjaardag"] { --t-rank: url("data:image/svg+xml,%3Csvg xmlns='
 /* geschiedenis: de tijd sinds de vorige voeding, achter de hoeveelheid */
 .tussen { font-size: 13px; color: var(--zacht); font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tussen.gehaald { color: var(--goed); font-weight: 600; }
+
+/* streef kiezen vanaf het startscherm */
+.vcel.tikbaar { cursor: pointer; }
+.vcel.tikbaar span { text-decoration: underline dotted; text-decoration-color: var(--zacht); text-underline-offset: 3px; }
+.streefkop { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--zacht); margin: 12px 0 0; }
+.streefkeuze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.streefkeuze .pil { padding: 10px 6px; white-space: nowrap; }
+.streefkeuze .pil.gekozen { background: var(--primair); border-color: var(--primair); color: var(--primair-tekst); }

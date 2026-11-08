@@ -27,6 +27,15 @@ await A.p.click("#luierkaart [data-luier=poep]");
 await J.p.waitForTimeout(1200);
 ok("poepluier: eigen kleur in geschiedenis, vet in Vandaag en 'laatste poep' op de kaart", Boolean(await J.p.$(".iregel.luier.poep")) && /Luiers\s*2 · 1 nat · 1 poep/.test(await tekst(J.p, "#totalen-vandaag")) && (await tekst(J.p, "#laatste-poep")) === "" && /poep · zojuist/.test(await tekst(J.p, "#laatste-luier")), await tekst(J.p, "#laatste-poep"));
 
+// Streef is gedeeld: Jaimy kiest 3 u, Aisha ziet het in Instellingen.
+await J.p.click("#v-streef");
+await J.p.click('#streef-uren [data-uur="3"]');
+await J.p.click("#dlg-streef button[value=sluit]");
+await A.p.waitForTimeout(1500);
+await A.p.click("#knop-instellingen");
+ok("streef 3 u van Jaimy komt bij Aisha", (await A.p.inputValue("#i-streef-uur")) === "3", await A.p.inputValue("#i-streef-uur"));
+await A.p.click("#dlg-instellingen button[value=sluit]");
+
 // Borsttimer gedeeld.
 await J.p.click(".modus [data-modus=borst]");
 await J.p.click(".kant[data-kant=L] .timer");

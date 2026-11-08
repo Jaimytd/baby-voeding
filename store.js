@@ -143,6 +143,10 @@ async function firestoreStore(gezin) {
     // Gegevens van het kind (geboortedatum, naam).
     zetGezin: (velden, door) =>
       fs.setDoc(gezinDoc, { ...schoon(velden), door, bijgewerkt: fs.serverTimestamp() }, { merge: true }).catch((e) => meldFout(e)),
+    // Het streef (gedeeld doel). Lukt het delen niet, dan blijft het op deze telefoon staan.
+    zetStreef: (velden, door) =>
+      fs.setDoc(gezinDoc, { ...velden, door, bijgewerkt: fs.serverTimestamp() }, { merge: true })
+        .catch(() => window.dispatchEvent(new CustomEvent("melding", { detail: "Het streef is op deze telefoon bewaard, maar kon niet gedeeld worden." }))),
     volgGezin(cb) {
       return blijfVolgen((gelukt, mislukt) =>
         fs.onSnapshot(gezinDoc, (snap) => {
@@ -209,6 +213,7 @@ function lokaleStore(gezin) {
       localStorage.setItem("gezin:" + gezin, JSON.stringify({ ...JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}"), ...velden }));
       gezinLuisteraars.forEach((cb) => cb(JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}")));
     },
+    zetStreef(velden) { this.zetGezin(velden); },
     volgGezin(cb) {
       gezinLuisteraars.add(cb);
       cb(JSON.parse(localStorage.getItem("gezin:" + gezin) || "{}"));

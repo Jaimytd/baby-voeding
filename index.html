@@ -42,7 +42,7 @@
         <div id="laatste-detail" class="detail"></div>
         <div id="vooruit" class="vooruit" hidden>
           <div class="vcel" id="v-verwacht"><b></b><span>verwacht</span><small></small></div>
-          <div class="vcel" id="v-streef"><b></b><span></span><small></small></div>
+          <div class="vcel tikbaar" id="v-streef" role="button" tabindex="0" title="Streef aanpassen"><b></b><span></span><small></small></div>
           <div class="vcel" id="v-gem"><b></b><span>gemiddeld</span><small></small></div>
         </div>
         <div id="laatste-kant" class="kantpil" data-deel="borst" hidden></div>
@@ -432,6 +432,20 @@
   </dialog>
 
   <!-- Keuzevraag (in plaats van OK/Annuleren) -->
+  <!-- Streef kiezen vanaf het startscherm -->
+  <dialog id="dlg-streef" class="sheet">
+    <form method="dialog">
+      <h2>Waar werken jullie naartoe?</h2>
+      <p class="klein-grijs">Geldt voor beide telefoons. Het streef staat bij de cijfers en als stippellijn in de grafieken.</p>
+      <p class="streefkop">Tijd tussen flessen</p>
+      <div class="streefkeuze" id="streef-uren"></div>
+      <p class="streefkop">Per fles</p>
+      <div class="streefkeuze" id="streef-mls"></div>
+      <p class="klein-grijs">Een andere waarde vul je in bij Instellingen.</p>
+      <div class="knoppen"><button value="sluit" class="primair breed">Klaar</button></div>
+    </form>
+  </dialog>
+
   <dialog id="dlg-kies" class="sheet kies">
     <p id="kies-tekst"></p>
     <div id="kies-knoppen" class="kiesknoppen"></div>
@@ -513,7 +527,7 @@
             <input type="number" inputmode="numeric" min="30" max="400" step="5" id="i-streef-ml">
           </label>
         </div>
-        <p class="klein-grijs">Deze streefwaarden staan als dun stippellijntje in de grafieken en als "streef" bij de cijfers. Geldt voor deze telefoon.</p>
+        <p class="klein-grijs">Deze streefwaarden staan als dun stippellijntje in de grafieken en als "streef" bij de cijfers. Ze gelden voor beide telefoons. Snel wisselen kan ook bovenaan het startscherm: tik op de cel met "bij 4 u".</p>
       </fieldset>
       <fieldset class="onderdelen" id="i-oppas">
         <legend>Oppas</legend>

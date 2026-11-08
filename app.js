@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "59";
+const APP_VERSIE = "60";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -500,7 +500,8 @@ function verjaardagVandaag() {
   if (!l || l.dagen !== 0 || l.maanden === 0) return null;
   return l.maanden % 12 === 0 ? { jaar: l.maanden / 12 } : { maanden: l.maanden };
 }
-const streefTekst = () => `${String(streefUur()).replace(".", ",")} u`;
+const streefTekstVan = (u) => (Number.isInteger(u) ? `${u} u` : duurTekst(u * 36e5));
+const streefTekst = () => streefTekstVan(streefUur());
 function renderKind() {
   $("#leeftijd").textContent = [kindNaam(), leeftijdTekst()].filter(Boolean).join(" · ");
 }
@@ -2285,6 +2286,38 @@ for (const [id, fmt, leeg] of [["b-datum", datumTekst, ""], ["m-datum", datumTek
 }
 const zetKiezer = (id, waarde) => { const inp = $("#" + id); inp.value = waarde; inp.toon?.(); };
 
+// ---------- streef kiezen ----------
+// Het doel (tijd tussen flessen, ml per fles) wisselt nogal eens. Vanaf het startscherm kies je
+// het met een paar tikken; het wordt gedeeld via het gezinsdocument, zodat beide telefoons
+// hetzelfde doel tonen. Andere waarden kunnen via Instellingen.
+const STREEF_UREN = [2.5, 3, 3.5, 4, 4.5, 5];
+const STREEF_MLS = [105, 140, 175, 210, 245, 280];
+function zetStreef(deel, delen = true) {
+  const nieuw = { ...streef, ...deel };
+  if (nieuw.uur === streef.uur && nieuw.ml === streef.ml) return;
+  streef = nieuw;
+  ls.set("streef", streef);
+  renderAlles();
+  if (delen) store?.zetStreef?.({ streefMin: Math.round(streefUur() * 60), streefMl: streefMl() }, naam || "");
+}
+function renderStreefKeuze() {
+  $("#streef-uren").innerHTML = STREEF_UREN.map((u) => `<button type="button" class="pil${u === streefUur() ? " gekozen" : ""}" data-uur="${u}">${streefTekstVan(u)}</button>`).join("");
+  $("#streef-mls").innerHTML = STREEF_MLS.map((m) => `<button type="button" class="pil${m === streefMl() ? " gekozen" : ""}" data-ml="${m}">${m} ml</button>`).join("");
+}
+$("#dlg-streef").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-uur], [data-ml]");
+  if (!b) return;
+  zetStreef(b.dataset.uur ? { uur: Number(b.dataset.uur) } : { ml: Number(b.dataset.ml) });
+  renderStreefKeuze();
+});
+const openStreef = () => {
+  if (oppas) return;
+  renderStreefKeuze();
+  $("#dlg-streef").showModal();
+};
+$("#v-streef").addEventListener("click", openStreef);
+$("#v-streef").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openStreef(); } });
+
 // ---------- bewerken ----------
 const dlgBewerk = $("#dlg-bewerk");
 let bewerkId = null;
@@ -2433,12 +2466,7 @@ dlgInst.addEventListener("close", () => {
     naam = n;
     ls.set("naam", naam);
   }
-  const nieuwStreef = { uur: parseFloat(String($("#i-streef-uur").value).replace(",", ".")) || streef.uur, ml: getal($("#i-streef-ml").value) || streef.ml };
-  if (nieuwStreef.uur !== streef.uur || nieuwStreef.ml !== streef.ml) {
-    streef = nieuwStreef;
-    ls.set("streef", streef);
-    renderAlles();
-  }
+  zetStreef({ uur: parseFloat(String($("#i-streef-uur").value).replace(",", ".")) || streef.uur, ml: getal($("#i-streef-ml").value) || streef.ml });
   // Kind: alleen schrijven als er iets veranderd is.
   const nieuwKind = { kind: $("#i-kind").value.trim().slice(0, 30), geboortedatum: $("#i-geboren").value || null };
   if (nieuwKind.kind !== kindNaam() || nieuwKind.geboortedatum !== (kind.geboortedatum || null)) {
@@ -2658,6 +2686,7 @@ function herlaadVeilig() {
   location.reload();
 }
 window.addEventListener("opslagkapot", herlaadVeilig);
+window.addEventListener("melding", (e) => toast(e.detail));
 window.addEventListener("unhandledrejection", (e) => isKapot(e.reason) && herlaadVeilig());
 window.addEventListener("error", (e) => isKapot(e.error || e.message) && herlaadVeilig());
 
@@ -2707,6 +2736,14 @@ async function start() {
   store.volgGezin?.((g) => {
     kind = { kind: g.kind || "", geboortedatum: g.geboortedatum || null };
     ls.set("kind", kind);
+    // Het streef is gedeeld: de andere telefoon neemt het over.
+    if (Number.isFinite(g.streefMin)) {
+      const nieuw = { uur: g.streefMin / 60, ml: Number.isFinite(g.streefMl) ? g.streefMl : streef.ml };
+      if (nieuw.uur !== streef.uur || nieuw.ml !== streef.ml) {
+        streef = nieuw;
+        ls.set("streef", streef);
+      }
+    }
     pasThemaToe();
     renderAlles();
   });

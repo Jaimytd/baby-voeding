@@ -20,7 +20,9 @@ service cloud.firestore {
     match /gezinnen/{gezin}/status/gezin {
       allow read, delete: if codeOk(gezin);
       allow write: if codeOk(gezin)
-        && request.resource.data.keys().hasOnly(['geboortedatum', 'kind', 'door', 'bijgewerkt'])
+        && request.resource.data.keys().hasOnly(['geboortedatum', 'kind', 'streefMin', 'streefMl', 'door', 'bijgewerkt'])
+        && (!('streefMin' in request.resource.data) || (request.resource.data.streefMin is int && request.resource.data.streefMin >= 60 && request.resource.data.streefMin <= 480))
+        && (!('streefMl' in request.resource.data) || (request.resource.data.streefMl is int && request.resource.data.streefMl >= 30 && request.resource.data.streefMl <= 400))
         && (request.resource.data.get('geboortedatum', null) == null
             || (request.resource.data.geboortedatum is string && request.resource.data.geboortedatum.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
         && request.resource.data.get('kind', '').size() <= 30
