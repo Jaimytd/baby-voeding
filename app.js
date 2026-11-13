@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "60";
+const APP_VERSIE = "61";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -2674,9 +2674,16 @@ function syncMelding() {
 // De lokale opslag van de browser is weggevallen (vooral iPhone na lang op de achtergrond).
 // Herladen herstelt dat; niet terwijl iemand iets aan het invullen is.
 let moetHerladen = false;
+// Is iemand bezig? Een open venster, een veld met focus, een ingevulde fles, of een tik in de
+// laatste 15 seconden. Dan nooit zomaar herladen: een registratie halverwege zou verloren gaan.
+let laatsteTik = 0;
+for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => (laatsteTik = Date.now()), { capture: true, passive: true });
+const bezigMetInvullen = () => [...document.querySelectorAll("dialog")].some((d) => d.open)
+  || document.activeElement?.matches?.("input, textarea, select")
+  || getal($("#kunst").value) > 0 || getal($("#kolf").value) > 0
+  || Date.now() - laatsteTik < 15000;
 function herlaadVeilig() {
-  const bezig = [...document.querySelectorAll("dialog")].some((d) => d.open)
-    || document.activeElement?.matches?.("input, textarea, select");
+  const bezig = bezigMetInvullen();
   if (document.hidden) return void (moetHerladen = true);
   if (bezig) return toast("De verbinding met de opslag is weggevallen.", "Herladen", () => location.reload());
   let vorige = 0;
@@ -2831,13 +2838,30 @@ async function start() {
 
 start();
 
+// Nieuwe versie van de app gevonden: herladen zodra er even niets gebeurt, en pas nadat alle
+// schrijfacties zijn opgeslagen. Niet midden in het invullen: een luier en meteen een fles
+// erachteraan leverde anders maar één registratie op.
+let nieuweVersie = false;
+let herladen = false;
+function vernieuw() {
+  if (herladen) return;
+  herladen = true;
+  const klaar = store?.wachtOpSchrijven?.() ?? Promise.resolve();
+  Promise.race([klaar, new Promise((r) => setTimeout(r, 3000))]).catch(() => {}).then(() => location.reload());
+}
+function probeerVernieuwen(stil) {
+  if (!nieuweVersie || herladen) return;
+  if (!bezigMetInvullen()) return vernieuw();
+  if (!stil) toast("Er is een nieuwe versie. Die laadt vanzelf zodra je even niets doet.", "Nu", vernieuw);
+  setTimeout(() => probeerVernieuwen(true), 20000);
+}
+window.nieuweVersieKlaar = () => { nieuweVersie = true; probeerVernieuwen(false); };
+document.addEventListener("visibilitychange", () => document.hidden && nieuweVersie && vernieuw());
 if ("serviceWorker" in navigator) {
-  // Nieuwe versie van de app gevonden: één keer herladen zodat hij direct actief is.
-  let herladen = !navigator.serviceWorker.controller; // eerste bezoek: niet herladen
+  const eersteBezoek = !navigator.serviceWorker.controller; // eerste bezoek: niet herladen
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (herladen || $("#dlg-kies").open || $("#dlg-bewerk").open || $("#dlg-start").open) return;
-    herladen = true;
-    location.reload();
+    if (eersteBezoek) return;
+    window.nieuweVersieKlaar();
   });
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
     document.addEventListener("visibilitychange", () => !document.hidden && reg.update().catch(() => {}));

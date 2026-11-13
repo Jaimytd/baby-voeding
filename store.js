@@ -76,6 +76,8 @@ async function firestoreStore(gezin) {
   return {
     gedeeld: true,
     herverbind,
+    // Voor herladen: wachten tot alle lokale schrijfacties bij de server zijn.
+    wachtOpSchrijven: () => fs.waitForPendingWrites(db),
     subscribe(cb, fout) {
       return blijfVolgen((gelukt, mislukt) => {
         const q = fs.query(

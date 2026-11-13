@@ -47,6 +47,8 @@ Bovenaan staat hoe lang de laatste voeding geleden is. Onder **Vandaag** staan d
 
 De lopende timers zijn gedeeld: start Aisha links, dan ziet Jaimy hem ook lopen. Bovenaan staat dan "Nu bezig". Per ongeluk gestart? Tik op **Wissen**. Na opslaan kun je 6 seconden **Ongedaan maken**.
 
+Een nieuwe versie van de app laadt vanzelf, maar nooit midden in het invullen: pas als er vijftien seconden niet getikt is, of zodra de app naar de achtergrond gaat, en altijd nadat alles is opgeslagen.
+
 De app helpt tegen vergissingen: een vraag bij een timer die al uren loopt, bij een pauze van meer dan 20 minuten ("nieuwe voeding?"), bij een dubbele registratie binnen 15 minuten en bij kolven zonder opbrengst. Naast de tijd staat "vandaag" of "gisteren".
 
 ## Overzicht
