@@ -490,7 +490,20 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .koppelen { display: grid; gap: 10px; }
 .koppelen h3 { margin: 4px 0 0; font-size: 16px; }
 .tweeknop { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.sheet { max-height: calc(100dvh - 24px); overflow-y: auto; }
+/* vensters passen altijd in beeld, ook boven het toetsenbord (Android verkleint dan het venster,
+   zie de viewport-regel in index.html). De knoppen onderaan blijven staan; alleen de inhoud schuift. */
+.sheet {
+  --rand: 20px; padding: var(--rand); max-width: calc(100% - 24px);
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: 96px;
+}
+/* De balk loopt door tot de randen van het venster (de marge heft de binnenrand op), zodat er
+   onder en naast de knoppen geen inhoud doorheen schuift. */
+.sheet form > .knoppen:last-child {
+  position: sticky; bottom: calc(-1 * var(--rand)); z-index: 1;
+  margin: -4px calc(-1 * var(--rand)) calc(-1 * var(--rand)); padding: 14px var(--rand) var(--rand);
+  background: linear-gradient(to bottom, transparent, var(--kaart) 12px);
+}
 .tweeknop button { white-space: nowrap; padding: 0 8px; }
 .blikvak.samen { background: none; border: 1px solid var(--lijn); padding: 8px 14px; }
 .blikvak.samen b { font-size: 20px; }
@@ -520,12 +533,28 @@ body:not([data-modus="borst"]) #laatste-kant { display: none; }
 .tweeveld { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .veld input, .veld select { min-width: 0; max-width: 100%; }
 .knoppen { flex-wrap: wrap; }
-/* bewerkvenster: opslaan breed bovenaan, annuleren eronder, verwijderen apart en klein */
-#form-bewerk .knoppen { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 6px; padding-bottom: env(safe-area-inset-bottom); }
-#form-bewerk .knoppen .vul { display: none; }
-#form-bewerk .knoppen .primair { min-height: 52px; }
-#form-bewerk .knoppen .secundair { min-height: 48px; }
-#form-bewerk .knoppen .gevaar { justify-self: center; padding: 10px 16px; margin-top: 4px; }
+/* bewerkvenster: annuleren en opslaan naast elkaar, verwijderen klein eronder. Samen laag genoeg
+   om ook boven het toetsenbord in beeld te blijven. Opslaan staat in de pagina vooraan, zodat
+   de enter-toets opslaat; de volgorde op het scherm komt uit order. */
+#dlg-bewerk { scroll-padding-bottom: 136px; }
+#form-bewerk .knoppen { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; }
+#form-bewerk .knoppen .primair { order: 2; min-height: 50px; padding: 0 8px; }
+#form-bewerk .knoppen .secundair { order: 1; min-height: 50px; padding: 0 16px; }
+#form-bewerk .knoppen .gevaar { order: 3; grid-column: 1 / -1; justify-self: center; min-height: 40px; padding: 0 16px; }
+/* toetsenbord open op Android (zie meetToetsenbord in app.js): de tabbalk en de zwevende
+   opslaanknop nemen dan geen ruimte in boven het toetsenbord */
+.toetsenbord .tabbar { display: none; }
+.toetsenbord .opslaanbalk { position: static; }
+/* weinig hoogte (toetsenbord open, of de telefoon op zijn kant): alles wat compacter */
+@media (max-height: 480px) {
+  .sheet { --rand: 14px; max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .sheet form { gap: 10px; }
+  .sheet h2 { font-size: 17px; }
+  .sheet form > .knoppen:last-child { padding-top: 10px; }
+  #form-bewerk .knoppen .primair, #form-bewerk .knoppen .secundair { min-height: 44px; }
+  #form-bewerk .knoppen .gevaar { min-height: 32px; font-size: 14px; }
+  #dlg-bewerk { scroll-padding-bottom: 112px; }
+}
 
 /* vandaag: gevoed, gekolfd, over */
 #totalen-vandaag { display: grid; gap: 10px; }
@@ -895,7 +924,11 @@ body.nacht img, body.nacht svg { filter: brightness(.92); }
 .themakeuze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
 
 /* bewerken: de tijd groot, de datum klein ernaast */
-.tijddatum { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: start; }
+.tijddatum { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+/* De tijd heeft ruimte nodig voor -5, vier cijfers en +5; past de datum er niet meer naast,
+   dan komt die eronder in plaats van dat de tijd wordt afgekapt. */
+.tijddatum > .veld { flex: 3 1 184px; min-width: 0; }
+.tijddatum > .veld.datumklein { flex: 2 1 96px; }
 .veld input[type="time"], .veld input[type="date"] {
   min-height: 48px; border: 1px solid var(--lijn); border-radius: 12px; padding: 0 12px; background: var(--veld); color: var(--tekst); font: inherit; width: 100%;
 }

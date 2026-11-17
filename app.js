@@ -6,7 +6,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const PRESETS = { kolf: [35, 70, 105, 140, 175], kunst: [35, 70, 105, 140, 175], kolfL: [20, 40, 60], kolfR: [20, 40, 60] };
 const DAGEN_ZICHTBAAR_START = 7;
 const DAG = 864e5;
-const APP_VERSIE = "61";
+const APP_VERSIE = "62";
 
 // ---------- opslag van voorkeuren ----------
 const ls = {
@@ -2435,6 +2435,24 @@ $("#b-verwijder").addEventListener("click", async () => {
   const { id: _, ...kopie } = v;
   toast("Verwijderd", "Ongedaan maken", () => registreer(kopie));
 });
+
+// ---------- toetsenbord ----------
+// Op Android krimpt het venster als het toetsenbord opent (interactive-widget in index.html),
+// zodat een venster met zijn knoppen erboven past. Zonder ingreep zou op het hoofdscherm ook de
+// tabbalk boven het toetsenbord komen te staan; die gaat weg zolang er getikt wordt. Het
+// toetsenbord is open als een invoerveld de focus heeft en het venster flink lager is dan het
+// bij deze breedte ooit was. Op iPhone krimpt het venster niet en verandert er niets.
+const hoogsteVenster = new Map();
+function meetToetsenbord() {
+  const b = window.innerWidth, h = window.innerHeight;
+  hoogsteVenster.set(b, Math.max(hoogsteVenster.get(b) || 0, h));
+  const typt = Boolean(document.activeElement?.matches?.("input:not([type=checkbox]):not([type=radio]):not([type=date]), textarea"));
+  document.documentElement.classList.toggle("toetsenbord", typt && hoogsteVenster.get(b) - h > 150);
+}
+window.addEventListener("resize", meetToetsenbord);
+document.addEventListener("focusin", meetToetsenbord);
+document.addEventListener("focusout", () => setTimeout(meetToetsenbord));
+meetToetsenbord();
 
 // ---------- instellingen ----------
 const dlgInst = $("#dlg-instellingen");
